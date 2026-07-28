@@ -1,0 +1,35 @@
+| Item | Data |
+| --- | --- |
+| School | 1 branch: "Greenwood High School - Main Branch" |
+
+| Classes | 1–7 → section A only; **8, 9, 10 → sections A, B, C** = 16 classes |
+
+| Students | **25 per class = 400 students**, each with roll number, DOB, gender, address |
+
+| Parents | 400 parent login accounts (1 per student) |
+
+| Teachers | 20 teachers with employee IDs, subjects, leave balances |
+
+| Everything else | All 6 subjects, 2026-27 enrollments, school calendar (Jun 2026–Apr 2027, Sundays + holidays off), attendance (Jul 20–25), FA-1 exam with marks for all 400 students, fees + installments + receipts, 2 buses + assignments + alarms, class/staff groups with messages + reactions, complaints, feedback survey with responses, posts + reactions, 2 pending admissions, notifications fanned out to everyone, **full published timetable for all 16 classes** (768 slots, no teacher double-booked), leaves, change requests, audit logs |
+
+
+
+
+to-date Next.js code? ... No / Yes
+Creating a new Next.js app in C:\projects\school-app.
+
+Using npm.
+
+Initializing project with template: app-tw
+
+
+Installing dependencies:
+- next
+- react
+- react-dom
+
+Installing devDependencies:
+- @tailwindcss/postcss
+- eslint
+- eslint-config-next
+- tailwindcss
