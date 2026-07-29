@@ -16,7 +16,7 @@ and readable on a Rs 7,000 Android phone.
 
 1. **NEVER hardcode colors in components.** No `bg-[#131316]`, no `text-[#e7e5e0]`
    in JSX. ALL colors come from CSS variables defined ONCE in `app/globals.css`
-   and mapped into Tailwind config as semantic names (`bg-surface`, `text-body`,
+   and and declared via @theme in app/globals.css as semantic names (Tailwind v4 CSS-first - NO tailwind.config.js) (`bg-surface`, `text-body`,
    `border-line`, `text-muted`, `bg-page`, etc.).
 2. Themes switch via `data-theme="dark" | "light"` on the `<html>` element.
    **Dark is the default.**

@@ -40,6 +40,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 
+# Uploaded files - live on disk, backed up separately, NEVER in git
+/public/uploads
+
 # OS / editor junk
 .DS_Store
-Thumbs.dbgit
+Thumbs.db

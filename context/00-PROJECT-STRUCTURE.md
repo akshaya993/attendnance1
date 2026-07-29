@@ -323,7 +323,9 @@ file 14 Prompt 1 at that point (the audit_logs table already exists in schema.sq
 school-app/
 ├── .env.local                      [you]   DATABASE_URL, JWT_SECRET, SMS_*, AI_*, VAPID_*
 ├── .gitignore                      [auto]  + .env.local, public/uploads
-├── package.json / next.config.mjs / jsconfig.json / tailwind.config.js / postcss.config.js  [auto]
+├── package.json / next.config.mjs / jsconfig.json / postcss.config.mjs / eslint.config.mjs  [auto]
+│                                   NOTE: Tailwind v4 = CSS-first. There is NO tailwind.config.js.
+│                                   Theme tokens live in app/globals.css via @theme. Do not create one.
 ├── ecosystem.config.js             [deploy] pm2: web (cluster) + busAlarmWorker + feeReminders
 ├── middleware.js                   [13]
 ├── db/

@@ -17,8 +17,8 @@
 - [x] pg + bcryptjs + jose installed
 - [x] .env.local with DATABASE_URL + JWT_SECRET
 - [x] Health check /api/health -> {"ok":true,"students":400}
-- [ ] db/ folder in project with schema.sql + seed.sql reference copies
-- [ ] 6 context files placed in project /context folder
+- [x] db/ folder in project with schema.sql + seed.sql reference copies
+- [x] 7 context files placed in project /context folder
 
 ## Seed logins (password for all: Pass@123)
 
