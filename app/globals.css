@@ -1,26 +1,179 @@
+/* ---------------------------------------------------------------
+   Veritas Editorial design tokens
+   Source of truth: context/ui-context.md  (do not invent colours)
+   Created in Feature 13. Tailwind v4 = CSS-first, there is NO
+   tailwind.config.js. All tokens live here.
+   NEVER hardcode a hex value in a component. Use the classes below.
+   --------------------------------------------------------------- */
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* DARK is the default theme */
+:root,
+[data-theme="dark"] {
+  --bg-page: #0a0a0b;
+  --bg-surface: #131316;
+  --bg-raised: #1a1a1e;
+  --border-line: #232326;
+  --border-soft: #1c1c20;
+  --text-body: #e7e5e0;
+  --text-muted: #8a8a90;
+  --cta-bg: #f5f4f1;
+  --cta-text: #0a0a0b;
+  --ok: #4ade80;
+  --ok-soft: rgba(34, 197, 94, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --warn: #fbbf24;
+  --warn-soft: rgba(245, 158, 11, 0.12);
 }
 
+[data-theme="light"] {
+  --bg-page: #faf9f6;
+  --bg-surface: #ffffff;
+  --bg-raised: #f1efe9;
+  --border-line: #e7e4da;
+  --border-soft: #f2f0e9;
+  --text-body: #1c1b18;
+  --text-muted: #6d6a60;
+  --cta-bg: #1c1b18;
+  --cta-text: #faf9f6;
+  --ok: #166534;
+  --ok-soft: #e4f5e9;
+  --danger: #b91c1c;
+  --danger-soft: #fde4e4;
+  --warn: #92600a;
+  --warn-soft: #fdf3dd;
+}
+
+/* Register the tokens with Tailwind.
+   "inline" keeps them as var() references, so utilities re-resolve
+   automatically when data-theme flips. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-line: var(--border-line);
+  --color-soft: var(--border-soft);
+  --color-body: var(--text-body);
+  --color-muted: var(--text-muted);
+  --color-cta: var(--cta-bg);
+  --color-cta-text: var(--cta-text);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+
+  /* System fonts only. No downloads, no next/font, no Google Fonts. */
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono",
+    monospace;
+
+  --radius-card: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------------- base ---------------- */
+
+html {
+  background-color: var(--bg-page);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease-out, color 200ms ease-out;
 }
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* Accessible focus ring everywhere */
+:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+}
+
+/* ---------------- shared patterns ----------------
+   Small reusable classes so every feature looks the same.
+   Anything more specific belongs in the component. */
+
+/* Uppercase mono micro-label: 'PORTAL / ATTENDANCE' */
+.label-micro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+/* Standard card */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius-card);
+  padding: 18px;
+}
+
+/* Status pill */
+.pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+/* One primary CTA per screen */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--cta-bg);
+  color: var(--cta-text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 11px 22px;
+  border-radius: 8px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: opacity 150ms ease-out;
+}
+
+.cta:hover { opacity: 0.88; }
+.cta:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Text input */
+.field {
+  width: 100%;
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-line);
+  border-radius: 8px;
+  color: var(--text-body);
+  padding: 12px 14px;
+  min-height: 44px;
+  font-size: 15px;
+  transition: border-color 150ms ease-out;
+}
+
+.field::placeholder { color: var(--text-muted); }
+.field:focus { border-color: var(--text-muted); outline: none; }
