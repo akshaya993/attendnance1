@@ -150,7 +150,7 @@ export async function POST(request) {
       isPasswordExpired(profile.role, profile.passwordChangedAt);
 
     const token = await createSessionToken({
-      profileId: profile.id,
+      profileId: Number(profile.id),
       role: profile.role,
       branchId: profile.branchId,
       epoch: profile.sessionEpoch,
