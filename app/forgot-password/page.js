@@ -1,17 +1,31 @@
 "use client";
 
 // Password reset: phone -> code -> new password, all on one URL.
-// A client component, so there is no metadata export here. The trade-off is
-// deliberate: a three-step flow spread across three routes leaves people
-// stranded when they refresh.
+// A client component, so no metadata export is possible here. That trade is
+// deliberate: splitting three steps across three routes strands people the
+// moment they refresh.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import OtpInput from "@/components/auth/OtpInput";
 import PasswordField from "@/components/auth/PasswordField";
 
 const PURPOSE = "reset";
+
+// LONGER than OTP_COOLDOWN_SECONDS (45) in lib/repos/authRepo.js, on purpose.
+// The server refuses silently, so if this visible timer were the shorter of the
+// two, a click at zero could produce no code and no error at all.
+const CLIENT_COOLDOWN_SECONDS = 60;
+
+// Where the browser remembers its own countdown across a page refresh.
+const COOLDOWN_KEY = "otpCooldown";
+
+function formatWait(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState("phone"); // phone | code | password | done
@@ -24,6 +38,45 @@ export default function ForgotPasswordPage() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Resend cooldown. Tracked against the phone number it belongs to, so
+  // switching numbers is not punished by another account's timer. Per-number
+  // enforcement still happens on the server regardless of what we show.
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [lastSentTo, setLastSentTo] = useState("");
+
+  const coolingDown = secondsLeft > 0 && phoneNumber === lastSentTo;
+
+  // Tick down once per second.
+  useEffect(() => {
+    if (secondsLeft <= 0) return undefined;
+    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [secondsLeft]);
+
+  // Restore a countdown that was still running before a page refresh.
+  // Without this, F5 unlocks the button while the SERVER is still refusing,
+  // so the user would be told a code was sent and receive nothing.
+  // This is only the browser remembering the user's OWN click -- the server is
+  // never consulted, so nothing about any account is revealed.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(COOLDOWN_KEY);
+      if (!raw) return;
+
+      const saved = JSON.parse(raw);
+      const left = Math.ceil((saved.until - Date.now()) / 1000);
+
+      if (saved.phone && left > 0) {
+        setPhoneNumber(saved.phone);
+        setLastSentTo(saved.phone);
+        setSecondsLeft(Math.min(left, CLIENT_COOLDOWN_SECONDS));
+      }
+    } catch {
+      // Private browsing can block localStorage. Losing the timer is a small
+      // annoyance; a crash on the reset screen would not be.
+    }
+  }, []);
+
   async function post(url, body) {
     const res = await fetch(url, {
       method: "POST",
@@ -35,6 +88,8 @@ export default function ForgotPasswordPage() {
   }
 
   async function sendCode(nextChannel = channel) {
+    if (coolingDown) return;
+
     setError("");
     setNotice("");
     setBusy(true);
@@ -46,15 +101,34 @@ export default function ForgotPasswordPage() {
       });
 
       if (!ok) {
-        // Only shape errors reach here - a bad phone number format. An unknown
-        // account still returns 200, so we never reveal who exists.
+        // Only shape errors land here, e.g. a malformed phone number. An
+        // unknown account still returns 200, so we never reveal who exists.
         setError(payload?.error || "Something went wrong. Please try again.");
         return;
       }
 
+      setLastSentTo(phoneNumber);
+      setSecondsLeft(CLIENT_COOLDOWN_SECONDS);
+
+      // Stored as an absolute DEADLINE, not a remaining count, so reloading
+      // twenty seconds later shows 0:40 instead of starting again at 1:00.
+      try {
+        window.localStorage.setItem(
+          COOLDOWN_KEY,
+          JSON.stringify({
+            phone: phoneNumber,
+            until: Date.now() + CLIENT_COOLDOWN_SECONDS * 1000,
+          })
+        );
+      } catch {
+        // Storage unavailable - the in-memory timer still works this session.
+      }
+
       setCode("");
       setStep("code");
-      setNotice(payload?.data?.message || "If an account exists, a code has been sent.");
+      setNotice(
+        payload?.data?.message || "If an account exists, a code has been sent."
+      );
     } catch {
       setError("Cannot reach the server. Check your connection.");
     } finally {
@@ -99,6 +173,13 @@ export default function ForgotPasswordPage() {
       if (!ok) {
         setError(payload?.error || "Something went wrong. Please try again.");
         return;
+      }
+
+      // The reset is finished, so the countdown is no longer meaningful.
+      try {
+        window.localStorage.removeItem(COOLDOWN_KEY);
+      } catch {
+        // Nothing to clean up if storage is unavailable.
       }
 
       setStep("done");
@@ -170,11 +251,23 @@ export default function ForgotPasswordPage() {
 
               <button
                 type="submit"
-                disabled={busy || phoneNumber.length !== 10}
+                disabled={busy || coolingDown || phoneNumber.length !== 10}
                 className="cta mt-6 w-full"
               >
-                {busy ? "Sending..." : "Send code"}
+                {busy
+                  ? "Sending..."
+                  : coolingDown
+                    ? `Wait ${formatWait(secondsLeft)}`
+                    : "Send code"}
               </button>
+
+              {coolingDown ? (
+                <p className="text-muted mt-3 text-sm">
+                  A code was just sent to this number. You can request another
+                  in {formatWait(secondsLeft)}. Check your email, and your spam
+                  folder, while you wait.
+                </p>
+              ) : null}
             </form>
           ) : null}
 
@@ -208,14 +301,21 @@ export default function ForgotPasswordPage() {
               </button>
 
               <div className="mt-4 flex justify-between text-sm">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => sendCode()}
-                  className="text-muted underline"
-                >
-                  Send a new code
-                </button>
+                {coolingDown ? (
+                  <span className="text-muted">
+                    New code in {formatWait(secondsLeft)}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => sendCode()}
+                    className="text-muted underline"
+                  >
+                    Send a new code
+                  </button>
+                )}
+
                 <button
                   type="button"
                   disabled={busy}
@@ -230,6 +330,11 @@ export default function ForgotPasswordPage() {
                   Change number
                 </button>
               </div>
+
+              <p className="text-muted mt-4 text-xs">
+                Each account can request a limited number of codes per year, so
+                please wait for the one already sent before asking for another.
+              </p>
             </form>
           ) : null}
 
@@ -286,7 +391,10 @@ export default function ForgotPasswordPage() {
                 You have been signed out everywhere for safety. Sign in with your
                 new password.
               </p>
-              <Link href="/login" className="cta mt-6 inline-block w-full text-center">
+              <Link
+                href="/login"
+                className="cta mt-6 inline-block w-full text-center"
+              >
                 Go to sign in
               </Link>
             </div>
