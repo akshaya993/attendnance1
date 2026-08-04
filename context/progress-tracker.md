@@ -30,7 +30,7 @@ buses 9000000021/22. All fake - replace before production.
 | # | Feature | Status | Notes |
 |---|---|---|---|
 | 01-P0 | Project skeleton (lib/db.js, auth stub, branches/classes APIs) | NOT STARTED - NEXT UP | Tell AI: DB already exists, do NOT create schema |
-| 13 | Auth, OTP, middleware, real lib/auth.js | IN PROGRESS | Tasks 0-5 DONE (tested 2026-08-03): shell, migration 002, audit.js, authRepo.js, login+logout API (anti-enumeration + lockout verified), login UI. Task 6 home page built - needs manual test |
+| 13 | Auth, OTP, middleware, real lib/auth.js | IN PROGRESS | Tasks 0-7 DONE (tested 2026-08-04): shell, migration 002, audit.js, authRepo.js, login+logout, login UI, home + epoch kill-switch, proxy.js role gate. Task 8A mailer/sms DONE (real Gmail delivery verified). Task 8B OTP send+verify built - needs manual test |
 | 09 | Notifications + lib/notify.js + PWA files | not started | |
 | 01 | Attendance (rest) | not started | |
 | 14-P1 | lib/audit.js ONLY (needed by 04) | DONE - built during feature 13 | auth needs it for auth.admin_login / auth.lockout. Features 01/04/07/08/11/12/14 must IMPORT it, never recreate |
