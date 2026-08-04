@@ -6,7 +6,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getSession } from "@/lib/auth";
+import { getSession, isPasswordExpired } from "@/lib/auth";
 import { findAuthProfileById } from "@/lib/repos/authRepo";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -42,6 +42,16 @@ export default async function HomePage() {
   // lib/auth.js; this database comparison can only happen server-side.
   if (Number(profile.sessionEpoch ?? 0) !== Number(session.epoch ?? 0)) {
     redirect("/login");
+  }
+
+  // FORCED PASSWORD CHANGE. The login route sends people to /first-login, but
+  // that alone is skippable by typing "/" in the address bar. Enforcing it
+  // here as well is what actually makes the admin 30 day rotation binding.
+  if (
+    Boolean(profile.mustChangePassword) ||
+    isPasswordExpired(profile.role, profile.passwordChangedAt)
+  ) {
+    redirect("/first-login");
   }
 
   return (

@@ -160,7 +160,7 @@ export async function POST(request) {
     const response = NextResponse.json({
       ok: true,
       data: {
-        profileId: profile.id,
+        profileId: Number(profile.id),
         role: profile.role,
         fullName: profile.fullName,
         mustChangePassword,
