@@ -1,8 +1,10 @@
 # PROJECT OVERVIEW
 ## School App - Multi-Branch School Management System (India)
 
-> CONTEXT FILE 1 of 6. Read together with: architecture.md, code-standards.md,
-> ui-context.md, ai-workflow-rules.md, progress-tracker.md.
+> GLOBAL CONTEXT FILE. Read together with: 00-MASTER-REFERENCE.md (first),
+> 00-PROJECT-STRUCTURE.md, architecture.md, code-standards.md, ui-context.md,
+> ai-workflow-rules.md, progress-tracker.md.
+> Per-feature docs live in context/features/<NN-name>/.
 
 ## What this product is
 
@@ -52,7 +54,7 @@ management, 12 Posts (photo feed), 13 Auth/OTP/security, 14 Promotions & year-en
 - Feature 13 (Auth/OTP/security): DONE, fully tested 2026-08-05. Password login
   with lockout, 100-day sliding sessions (30 for admin), proxy.js role gates,
   email-first OTP reset via nodemailer, forced first-login change, admin 30-day
-  rotation, 45s OTP resend cooldown. See context/13-*.md.
+rotation, 45s OTP resend cooldown. See the feature 13 docs in context/.
 - Next: 09 Notifications.
   01-Prompt0 -> 13 -> 09 -> 01 -> 04 -> 05 -> 07 -> 10 -> 02 -> 03 -> 06 -> 08
   -> 12 -> 14 -> 11 -> deploy.

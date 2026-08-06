@@ -1,5 +1,13 @@
 # Greenwood School App — MASTER REFERENCE
 
+At the start of EVERY session, read (or re-read) in this order:
+  1. 00-MASTER-REFERENCE.md  <- what ALREADY EXISTS. Read this first, always.
+  2. project-overview.md, architecture.md, code-standards.md, ui-context.md
+  3. this file, progress-tracker.md
+  4. 00-PROJECT-STRUCTURE.md for the feature's file manifest
+  5. 13-0-decisions.md if the task touches auth, sessions, passwords or OTP
+Then read the DB CONTRACT of the feature being built. Only then write code.
+
 **What this file is:** the inventory of everything that exists in this project
 right now, what each file does, why it exists, and which file to import instead of
 writing a new one.
@@ -31,7 +39,7 @@ Read in this order, then confirm understanding before writing code:
 1. `project-overview.md` — the product
 2. **this file** — what already exists
 3. `code-standards.md` + `ui-context.md` — how to write and style
-4. `ai-workflow-rules.md` — the 12 iron rules
+4. `ai-workflow-rules.md` — the 16 iron rules
 5. `13-0-decisions.md` — **mandatory if you touch anything auth-related**
 6. The feature prompt file you were given
 
@@ -638,7 +646,8 @@ Three rules added by experience during Feature 13:
 | **13** | **Auth, sessions, OTP, `proxy.js`, real `lib/auth.js`** | **DONE — fully tested 2026-08-05** |
 | 09 | Notifications (`lib/notify.js`, push) | Next up |
 | 01 (rest) | Core: students, classes, profiles | Planned |
-| 04 | Fees — first feature to call `logAudit` | Planned |
+04 Fees (lib/audit.js ALREADY EXISTS from feature 13 - import it, do NOT
+recreate it, and SKIP 14-Prompt1's "create lib/audit.js" task) -> 05 Groups -> 07 Marks ->
 | 05, 07, 10, 02, 03, 06, 08, 12, 14, 11 | See `00-PROJECT-STRUCTURE.md` for the per-feature file manifests | Planned |
 
 Build order: `01 P0 → 13 → 09 → 01 rest → 04 → 05 → 07 → 10 → 02 → 03 → 06 → 08 →

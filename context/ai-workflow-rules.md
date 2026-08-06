@@ -1,26 +1,38 @@
 # AI WORKFLOW RULES
 ## School App - Rules Every AI Coding Session Must Follow
 
-> CONTEXT FILE 5 of 6. These rules OVERRIDE anything the AI 'thinks' it knows.
+> These rules OVERRIDE anything the AI 'thinks' it knows.
 > Priority order when instructions conflict:
-> 1) The feature file's DB CONTRACT  2) These 6 context files
+> 1) The feature file's DB CONTRACT  2) The context/ docs
 > 3) The current prompt  4) The AI's own ideas (lowest - never wins).
 
 ## Session start ritual
 
-At the start of EVERY session, read (or re-read): project-overview.md,
-architecture.md, code-standards.md, ui-context.md, this file, progress-tracker.md.
+At the start of EVERY session, read (or re-read) in this order:
+
+1. 00-MASTER-REFERENCE.md  <- what ALREADY EXISTS. Read this first, always.
+2. project-overview.md, architecture.md, code-standards.md, ui-context.md
+3. this file, progress-tracker.md
+4. 00-PROJECT-STRUCTURE.md for the feature's file manifest
+5. context/features/<NN-name>/ for the feature being built - every feature
+   keeps its own decisions and reference docs there
+6. context/features/13-auth/13-0-decisions.md if the task touches auth,
+   sessions, passwords or OTP
+
 Then read the DB CONTRACT of the feature being built. Only then write code.
 
-## The 12 iron rules
+## The 16 iron rules
 
 1. DO NOT touch the database structure. No CREATE/ALTER/DROP, no 'helpful' new
    tables or columns. The 43-table schema in db/schema.sql is FINAL. If a task
    seems to need a schema change: STOP and ask the human.
 2. DO NOT overwrite .env.local, db/schema.sql, db/seed.sql, or
    app/api/health/route.js.
-3. DO NOT recreate shared files (lib/db.js, lib/auth.js, lib/notify.js,
-   lib/audit.js...). Import them. If one is missing, STOP and say so.
+3. DO NOT recreate shared files. These already exist - import them:
+   lib/db.js, lib/auth.js, lib/audit.js, lib/mailer.js, lib/sms.js,
+   lib/repos/authRepo.js, lib/repos/coreRepo.js, proxy.js.
+   Files a LATER feature will create (lib/notify.js in 09, lib/ai.js in 03,
+   lib/uploads.js in 12) do not exist yet - that is expected, not an error.
 4. DO NOT add npm packages beyond the approved list (see code-standards.md)
    without asking.
 5. DO NOT refactor, rename, reformat, or 'improve' files outside the current
@@ -49,12 +61,24 @@ Then read the DB CONTRACT of the feature being built. Only then write code.
     500 that cost an hour ("Export COOKIE_NAME doesn't exist").
 15. After adding a new app/api folder, delete .next and restart. Turbopack caches
     its route table and returns 404 for brand-new routes otherwise.
+16. NEVER write a documentation path into a code file - not in a comment, not in
+    a log string. Docs get reorganised; code must not carry stale directions.
+    Describe the doc instead ("see the OTP spec in context/"), never
+    "context/features/13-auth/13-1-...md". Feature docs live in
+    context/features/<NN-name>/, global docs in context/.
+
 ## Build order (do not shuffle)
 
 01-Prompt0 (skeleton) -> 13 Auth -> 09 Notifications -> 01 Attendance ->
-04 Fees (create lib/audit.js from 14-Prompt1 first) -> 05 Groups -> 07 Marks ->
-10 Timetable -> 02 Bus -> 03 Complaints -> 06 Leaves -> 08 Admissions ->
-12 Posts -> 14 Promotions -> 11 Profiles -> deploy.
+04 Fees -> 05 Groups -> 07 Marks -> 10 Timetable -> 02 Bus -> 03 Complaints ->
+06 Leaves -> 08 Admissions -> 12 Posts -> 14 Promotions -> 11 Profiles -> deploy.
+
+IMPORTANT: lib/audit.js ALREADY EXISTS (built during feature 13). Feature 04
+must IMPORT it, and feature 14 must SKIP its Prompt 1 "create lib/audit.js"
+task entirely. Recreating it would produce duplicate, diverging logic.
+
+IMPORTANT: feature 12 (Posts) uses `sharp` for image processing. Upgrade to
+next@16.3.0 BEFORE starting it - the current version pins a vulnerable sharp.
 
 ## Definition of done (per prompt)
 
