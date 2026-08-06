@@ -28,7 +28,7 @@
    touching money (fees + receipts + balance in one transaction) and promotions.
 6. Money is NUMERIC: treat as strings/decimal in JS, never float arithmetic.
    Display with 2 decimals.
-7. Sensitive mutations call logAudit(client, {...}) from lib/audit.js INSIDE the
+7. Sensitive mutations call logAudit(entry, client = null) from lib/audit.js INSIDE the
    same transaction. Actions: 'fee.payment', 'marks.save', 'marks.override',
    'attendance.override', 'post.delete', 'profile.change_review',
    'admission.approve', 'auth.admin_login', 'auth.lockout', 'promotion.run',
@@ -60,6 +60,15 @@
   matrix win over convenience.
 - Uploads: validate mime type + size server-side; process through sharp to WebP;
   store under public/uploads/; save the PATH in the DB, never bytes.
+  - bcryptjs ONLY, cost 10. Never install the native `bcrypt` package (C++ addon,
+  breaks on Windows and on every Node upgrade). "bcrypt.js" is not a package.
+- Auth responses must be indistinguishable: wrong phone and wrong password share
+  one message and one status code. Never confirm that an account exists.
+- Passwords: 8+ chars, at least one letter, at least one number, max 72 BYTES
+  (bcrypt's hard limit), and not equal to the current password. Enforced ONLY by
+  validatePassword() in lib/auth.js - never re-implement the rules in a route.
+- Every password change bumps profiles.session_epoch. Reset logs out ALL devices;
+  change-password re-mints this device's cookie and logs out the others.
 
 ## Component/page rules
 

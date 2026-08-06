@@ -1,6 +1,6 @@
 # Feature 13 — Authentication: Locked Decisions
 
-Status: IN PROGRESS
+Status: DONE (all tasks tested 2026-08-04/05)
 Owner feature: 13 (Login, Sessions, OTP, Password Reset)
 Written: 2026-08-01
 Read this before touching ANY auth code in any future chat.
@@ -85,8 +85,17 @@ Node-side pages and API routes, folded into a `profiles` read they already do.
 
 ## 6. OTP — one single limit
 
-- 30 OTPs per phone number per ROLLING 365 days. That is the ONLY rate limit.
-  No per-day, per-week or per-month buckets. No cooldown timer in v1.
+
+- 30 OTPs per phone number per ROLLING 365 days. That is the only QUOTA.
+  No per-day, per-week or per-month buckets.
+- PLUS a resend cooldown (task 9C): 45 seconds minimum between two codes for
+  the same phone + purpose, enforced by otpCooldownRemaining() in
+  lib/repos/authRepo.js (OTP_COOLDOWN_SECONDS = 45). A refused send returns the
+  byte-identical generic 200, writes NO row, spends NO quota, and leaves the
+  previous code valid. The UI shows a 60-second countdown
+  (CLIENT_COOLDOWN_SECONDS in app/forgot-password/page.js) - deliberately
+  LONGER than the server rule, because the server refuses silently.
+
 - Enforced by counting rows, not by counter columns:
 
     SELECT count(*)::int AS used FROM otp_codes
@@ -101,8 +110,9 @@ Node-side pages and API routes, folded into a `profiles` read they already do.
 - Used codes: consumed_at is stamped; a code can never be reused.
 - purpose is 'reset' or 'first_login' only (CHECK constraint).
 
-Cooldown, resend timers, DLT registration and real SMS provider setup are
-documented in context/13-1-otp-and-auth-spec.md. NOT implemented in v1.
+Cooldown and resend timers ARE implemented (task 9C). DLT registration and real
+SMS provider setup are documented in context/13-1-otp-and-auth-spec.md and are
+NOT implemented in v1.
 
 ## 7. OTP delivery channel
 
@@ -142,8 +152,12 @@ Existed as a partial file from 01-P0 (getSession, getSessionUser,
 requireRole, AuthError). Feature 13 APPENDS to it. It was not rewritten.
 
 ### middleware.js
-Created by Feature 13. All future features add route rules to it, never
-replace it.
+### proxy.js
+Created by Feature 13, at the project ROOT. Next.js 16 renamed the middleware
+file convention to `proxy.js` and the exported function from `middleware` to
+`proxy`. A file named middleware.js is SILENTLY IGNORED on Next 16 - no error,
+no warning, every route simply unprotected. Never rename it back.
+All future features add route rules to this file, never replace it.
 
 ### lib/mailer.js
 Created by Feature 13. Mirrors lib/sms.js. Any feature needing email
@@ -158,7 +172,7 @@ Added to .env.local in feature 13:
     SMS_API_KEY=
     SMS_SENDER_ID=
     SMS_DLT_TEMPLATE_ID=
-    MAIL_PROVIDER=console
+    MAIL_PROVIDER=gmail
     MAIL_USER=testingprototype3@gmail.com
     MAIL_PASS=<16-char Gmail App Password, no spaces>
     MAIL_FROM=Greenwood School <testingprototype3@gmail.com>

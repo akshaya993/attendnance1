@@ -40,7 +40,15 @@ Then read the DB CONTRACT of the feature being built. Only then write code.
 12. Never claim something works without a way to verify it. Provide the exact
     URL/steps for the human to test (seed logins: admin 9000000001, teacher
     9000000101, parent 9810000001 - password Pass@123).
-
+13. Next.js in this project is version 16. File CONVENTIONS changed: the
+    middleware file is now proxy.js exporting proxy(). A middleware.js file is
+    silently ignored. Verify any convention file against
+    node_modules/next/dist/docs/ before writing it.
+14. When an edit needs more than two separate find-and-replace operations in one
+    file, output the COMPLETE file instead. Silently-failed partial edits caused a
+    500 that cost an hour ("Export COOKIE_NAME doesn't exist").
+15. After adding a new app/api folder, delete .next and restart. Turbopack caches
+    its route table and returns 404 for brand-new routes otherwise.
 ## Build order (do not shuffle)
 
 01-Prompt0 (skeleton) -> 13 Auth -> 09 Notifications -> 01 Attendance ->

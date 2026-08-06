@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Greenwood School App
 
-## Getting Started
+Multi-branch school management app for schools in India. Next.js 16 (App Router,
+JavaScript), PostgreSQL 16 with raw `pg`, Tailwind v4. Self-hosted, no paid
+services.
 
-First, run the development server:
+## Run locally
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+    npm install
+    npm run dev        # http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requires PostgreSQL 16 with the `school` database loaded from `db/schema.sql`
+and `db/seed.sql`, plus a `.env.local` (never committed) containing
+DATABASE_URL, JWT_SECRET, SMS_*, MAIL_*.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Health check: `GET /api/health` -> `{"ok":true,"students":400}`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Read before writing code
 
-## Learn More
+Everything lives in `context/`:
 
-To learn more about Next.js, take a look at the following resources:
+| File | What it is |
+|---|---|
+| project-overview.md | product, roles, constraints |
+| architecture.md | layers, folders, shared-file ownership |
+| code-standards.md | how code must be written |
+| ui-context.md | Veritas Editorial design system |
+| ai-workflow-rules.md | the 12 iron rules |
+| progress-tracker.md | live build status |
+| 00-PROJECT-STRUCTURE.md | per-feature file manifest |
+| 13-0-decisions.md | auth decisions - READ BEFORE TOUCHING AUTH |
+| 13-3-file-map-and-flows.md | every auth file, how they connect |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Feature 13 (authentication) complete and tested. Next: 09 Notifications.
 
-## Deploy on Vercel
+## Conventions that will bite you
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `proxy.js` at the root, NOT `middleware.js` (Next 16 renamed it; the old name
+  is silently ignored).
+- Tailwind v4 is CSS-first: there is no `tailwind.config.js`. Tokens are in
+  `app/globals.css` under `@theme`.
+- All SQL lives in `lib/repos/*.js`. `lib/db.js` is the only file importing `pg`.
+- `bcryptjs` only, never native `bcrypt`.

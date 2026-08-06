@@ -7,7 +7,7 @@
 
 - Next.js (App Router), JavaScript (NOT TypeScript)
 - PostgreSQL 16 - the ONLY database. Raw SQL via `pg`. NO ORM.
-- bcryptjs (hashing), jose (JWT in httpOnly cookie)
+bcryptjs (hashing - NEVER native bcrypt), jose (JWT in httpOnly cookie), nodemailer (email OTP)
 - Tailwind CSS; pdfkit (PDFs); sharp (image->WebP); web-push (notifications);
   @dnd-kit (timetable builder)
 - Production: pm2 + nginx + Let's Encrypt on one VPS; nightly pg_dump
@@ -31,11 +31,19 @@ Flow: browser -> page -> fetch('/api/...') -> route.js -> lib/repos/xRepo.js -> 
 ```
 school-app/
 |-- .env.local              # DATABASE_URL, JWT_SECRET (+ SMS_*, VAPID_* later)
-|-- middleware.js           # JWT verification on protected routes (feature 13)
+|-- proxy.js                # Next 16 convention (NOT middleware.js). Runs on EDGE:  
+\|                           # signature + expiry only, CANNOT import pg. Default-deny
 |-- db/                     # schema.sql + seed.sql (REFERENCE ONLY - already loaded)
+                           (- Sessions: jose JWT   in httpOnly cookie `session`. 100 days for parent/teacher/bus,
+                            30 days for admin, re-issued only after 10 days are used. profiles.session_epoch
+                            is the instant "log out everywhere" switch: every token carries the epoch it was
+                             minted at, and any password change bumps it. proxy.js runs on Edge and cannot
+                             read the DB, so the epoch comparison happens in Node pages/routes.)
 |   |-- migrations/         # future numbered ALTER files (002_x.sql ...)
 |-- app/
-|   |-- login/  admin/  teacher/  parent/  bus/      # pages per role
+|   |-- login/ forgot-password/ first-login/          # EXIST (feature 13)
+|   |-- admin/ teacher/ parent/ bus/                  # NOT YET - proxy.js already
+|   |                                                  # guards these prefixes by role
 |   |-- api/    # auth/ attendance/ fees/ marks/ bus/ groups/ leaves/ complaints/
 |               # feedback/ admissions/ notifications/ timetable/ profiles/ posts/
 |               # promotions/ health/
@@ -44,7 +52,7 @@ school-app/
 |   |-- db.js               # ONLY file importing pg. Pool {max:15, idleTimeoutMillis:30000,
 |   |                       # connectionTimeoutMillis:5000}. Exports query, withTransaction, pool.
 |   |-- auth.js             # getSession/requireRole (stub in Prompt 0, real in feature 13)
-|   |-- notify.js audit.js sms.js ai.js eta.js uploads.js privacy.js activeChild.js
+|   |-- notify.js audit.js sms.js ai.js eta.js uploads.js privacy.js activeChild.js + mailer.js
 |   |-- repos/              # 15 repos: attendanceRepo busRepo complaintRepo feedbackRepo
 |                           # feeRepo groupRepo leaveRepo marksRepo admissionRepo
 |                           # notificationRepo timetableRepo profileRepo postRepo
@@ -59,9 +67,9 @@ school-app/
 |---|---|---|
 | lib/db.js | 01 Prompt 0 | everything |
 | lib/auth.js | stub 01-P0, REAL version feature 13 | everything |
-| middleware.js | 13 | all protected routes |
+| proxy.js | 13 | all protected routes |
 | lib/notify.js | 09 | 02,03,04,06,08,10,11,12,14 |
-| lib/audit.js | 14-Prompt1 (create early, when 04 needs it) | 01,04,07,08,11,12,13 |
+| lib/audit.js | 13 (pulled forward from 14-P1) | 01,04,07,08,11,12,13,14 |
 | lib/ai.js | 03 | 07 |
 
 NEVER recreate these files in another feature. Import them.
@@ -83,7 +91,7 @@ NEVER recreate these files in another feature. Import them.
 - Chat unread counts derived from group_members.last_read_at. Never store counters.
 - Notifications use precomputed fan-out (notification_recipients row per user);
   unread badge served by partial index WHERE is_read = false.
-- audit_logs written ONLY via lib/audit.js logAudit(client, {...}) inside the same
+- audit_logs written ONLY via lib/audit.js logAudit(entry, client = null ) inside the same
   transaction as sensitive mutations (money, marks overrides, deletes, promotions,
   admin logins). Never on reads.
 - Money = NUMERIC(10,2). PKs = BIGINT GENERATED ALWAYS AS IDENTITY. TIMESTAMPTZ for
@@ -100,6 +108,6 @@ only when EXPLAIN ANALYZE shows a Seq Scan on a big table in a hot query.
 
 DATABASE_URL, JWT_SECRET, SMS_PROVIDER=console|msg91|fast2sms, SMS_API_KEY,
 SMS_SENDER_ID, SMS_DLT_TEMPLATE_ID, AI_BASE_URL, AI_API_KEY, AI_MODEL,
-VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY.
+MAIL_PROVIDER=console\|gmail\|smtp, MAIL_USER, MAIL_PASS, MAIL_FROM , VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY.
 Every integration must have a 'console'/dev mode so the app runs without real
 providers.

@@ -16,7 +16,7 @@ Extracted directly from the 14 master-prompt files — file names match the prom
 ```
 db/schema.sql                                  # verbatim copy of 00-FINAL-DB-SCHEMA.md Part A
 lib/db.js                                      # the ONLY file importing 'pg' (Pool max 15)
-lib/auth.js                                    # placeholder — replaced by real version in file 13
+lib/auth.js  # partial from 01-P0; feature 13 APPENDS to it (never rewritten)
 lib/repos/                                     # empty folder, all SQL will live here
 app/api/branches/route.js                      # tiny helper: list branches
 app/api/classes/route.js                       # tiny helper: list classes of a branch
@@ -255,7 +255,7 @@ public/uploads/posts/                          # image storage (gitignored, back
 
 **Creates:**
 ```
-middleware.js                                  # JWT check on EVERY request + role route guard
+proxy.js  # Next.js 16 convention (NOT middleware.js) - session check + role route guard
 lib/auth.js                                    # REAL version (replaces Prompt 0 placeholder): jose JWT,
                                                #   bcrypt, getSession, requireRole
 lib/sms.js                                     # OTP SMS: console | msg91 | fast2sms via env
@@ -269,9 +269,17 @@ app/api/auth/otp/verify/route.js
 app/login/page.js
 app/forgot-password/page.js                    # OTP reset
 app/first-login/page.js                        # forced password change
-components/auth/                               # login form pieces as the AI splits them
+lib/mailer.js                                  # nodemailer: console | gmail | smtp
+db/migrations/002_auth_columns.sql             # profiles.session_epoch, password_changed_at
+components/ThemeToggle.js                      # light/dark switch (app shell)
+components/auth/PasswordField.js               # label + show/hide input
+components/auth/LoginForm.js                   # phone + password, client component
+components/auth/OtpInput.js                    # 6 boxes, auto-advance, paste support
+components/auth/LogoutButton.js                # POSTs /api/auth/logout
+context/13-0-decisions.md                      # locked decisions - READ FIRST
+
 ```
-**Also edits:** `app/page.js` (role-based redirect), `app/layout.js` (session-aware nav).
+**Also edits:** `app/page.js` (role-based redirect), app/layout.js (app shell + theme pre-paint script; session-aware nav still TODO, likely feature 09/11).
 **Uses:** `lib/db.js`, `lib/audit.js`.
 **DB tables owned:** otp_codes (+ auth columns on profiles).
 
@@ -302,35 +310,33 @@ workers/feeReminders.js                        # daily 8AM IST installment-due r
 |---|---|---|
 | lib/db.js | 01 Prompt 0 | every feature |
 | lib/auth.js | 01 Prompt 0 (stub) → 13 (real) | every feature |
-| middleware.js | 13 | whole app |
+| proxy.js | 13 | whole app |
 | lib/notify.js | 09 | 02, 03, 04, 06, 08, 10, 11, 12, 14 |
-| lib/audit.js | 14 | 01, 04, 07, 08, 11, 12, 13 |
+| lib/audit.js | **13** (pulled forward) | 01, 04, 07, 08, 11, 12, 13, 14 |
 | lib/ai.js | 03 | 07 |
 | lib/sms.js | 13 | 13 only |
+| lib/mailer.js | 13 | 13 + any feature needing email |
 | lib/eta.js | 02 | 02 only |
 | lib/uploads.js | 12 | 12 only |
 | lib/privacy.js, lib/activeChild.js | 11 | 11 + any page showing other users |
 
-⚠️ **Ordering note:** files 04/07/08/13 call `lib/audit.js`, but its creator prompt lives in file 14 Prompt 1.
-When you reach the FIRST feature that needs audit logging (04-FEES), run just the `lib/audit.js` part of
-file 14 Prompt 1 at that point (the audit_logs table already exists in schema.sql, so this is safe).
-
+⚠️ **Ordering note:**  RESOLVED: lib/audit.js was created during feature 13 (auth needs auth.admin_login / auth.lockout on day one). Tracker row 14-P1 is DONE. Features 01/04/07/08/11/12/14 must IMPORT it.
 ---
 
 # PART 2 — MERGED FINAL TREE (everything above in one view)
 
 ```
 school-app/
-├── .env.local                      [you]   DATABASE_URL, JWT_SECRET, SMS_*, AI_*, VAPID_*
+├── .env.local                      [you]   DATABASE_URL, JWT_SECRET, SMS_*, MAIL_*, AI_*, VAPID_*
 ├── .gitignore                      [auto]  + .env.local, public/uploads
 ├── package.json / next.config.mjs / jsconfig.json / postcss.config.mjs / eslint.config.mjs  [auto]
 │                                   NOTE: Tailwind v4 = CSS-first. There is NO tailwind.config.js.
 │                                   Theme tokens live in app/globals.css via @theme. Do not create one.
 ├── ecosystem.config.js             [deploy] pm2: web (cluster) + busAlarmWorker + feeReminders
-├── middleware.js                   [13]
+├── proxy.js                   [13]
 ├── db/
 │   ├── schema.sql                  [01 P0]
-│   └── migrations/001_v1_1.sql     [14]
+│   └── mmigrations/002_auth_columns.sql    [13, APPLIED] migrations/001_v1_1.sql          [14, reserved]
 ├── lib/
 │   ├── db.js [01 P0] · auth.js [13] · notify.js [09] · audit.js [14] · sms.js [13]
 │   ├── ai.js [03] · eta.js [02] · uploads.js [12] · privacy.js [11] · activeChild.js [11]
@@ -396,8 +402,11 @@ school-app/
 1. New files go ONLY in the locations shown above. If the AI proposes a new top-level folder, refuse it.
 2. ALL SQL lives in `lib/repos/*.js`. API routes call repo functions — never inline SQL.
 3. `lib/db.js` = only importer of `pg`. `lib/notify.js` = only writer of notifications. `lib/audit.js` = only writer of audit_logs.
-4. `app/**/page.js` = UI only. Pages call `/api/*` routes, never the database.
+4. app/**/page.js contains NO SQL. Server components MAY import repo functions
+   for READS (fewer round trips, faster on cheap phones). All WRITES go through
+   app/api/* routes. Client components ('use client') may only use fetch.
 5. Every `app/api/**` folder contains exactly one `route.js`.
 6. Workers import repos/libs directly (no HTTP) and are registered in `ecosystem.config.js`.
 
-**Build order:** 01 Prompt 0 → 13 → 09 → 01 rest → 04 (create lib/audit.js here, see note) → 05 → 07 → 10 → 02 → 03 → 06 → 08 → 12 → 14 → 11 → deploy.
+**Build order:** 01 Prompt 0 → 13 → 09 → 01 rest →04 logAudit(client, {...}) (in the 14 manifest) | logAudit(entry, client = null) → 05 → 07 → 10 → 02 → 03 → 06 → 08 → 12 → 14 → 11 → deploy.
+ → 05 → 07 → 10 → 02 → 03 → 06 → 08 → 12 → 14 → 11 → deploy.

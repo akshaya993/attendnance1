@@ -103,3 +103,11 @@ warn=late/half-day/pending, muted=inactive/archived.
 manifest.json: name 'Greenwood School', standalone display, theme_color #0a0a0b,
 background_color #0a0a0b, icons 192/512. Service worker for web-push. The app must
 remain fully usable as a normal website too.
+
+## Shared classes (created in feature 13, app/globals.css)
+
+Use these instead of re-inventing styles: .card, .pill, .cta, .field,
+.label-micro. Colour utilities: bg-page, bg-surface, bg-raised, border-line,
+border-soft, text-body, text-muted, bg-cta/text-cta-text, ok/ok-soft,
+danger/danger-soft, warn/warn-soft. The theme toggle lives in
+components/ThemeToggle.js and the pre-paint script is inline in app/layout.js.

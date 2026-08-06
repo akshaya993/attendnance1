@@ -49,6 +49,11 @@ management, 12 Posts (photo feed), 13 Auth/OTP/security, 14 Promotions & year-en
 - App skeleton: DONE. Next.js (App Router, JS) + Tailwind + pg/bcryptjs/jose.
   /api/health returns {"ok":true,"students":400}.
 - Now building features in this exact order:
+- Feature 13 (Auth/OTP/security): DONE, fully tested 2026-08-05. Password login
+  with lockout, 100-day sliding sessions (30 for admin), proxy.js role gates,
+  email-first OTP reset via nodemailer, forced first-login change, admin 30-day
+  rotation, 45s OTP resend cooldown. See context/13-*.md.
+- Next: 09 Notifications.
   01-Prompt0 -> 13 -> 09 -> 01 -> 04 -> 05 -> 07 -> 10 -> 02 -> 03 -> 06 -> 08
   -> 12 -> 14 -> 11 -> deploy.
 - See progress-tracker.md for live status.
