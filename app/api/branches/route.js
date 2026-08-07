@@ -1,4 +1,5 @@
-import { getSession, requireRole } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { requireActiveApiSession } from "@/lib/guard";
 import { listAllBranches, listOwnBranch } from "@/lib/repos/coreRepo";
 
 // This route reads a cookie, so it must never be cached or pre-rendered.
@@ -12,8 +13,10 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request) {
 	try {
-		// 1. SESSION - who is calling?
-		const user = await getSession(request);
+		//// 1. SESSION - who is calling, and is that session still alive?
+        //    requireActiveApiSession re-checks profiles.session_epoch against
+        //    the database. Without it, a revoked cookie still passed this gate.
+        const { session: user } = await requireActiveApiSession(request);
 
 		// 2. ROLE - are they allowed here at all?
 		requireRole(user, ["admin", "teacher", "parent", "bus"]);

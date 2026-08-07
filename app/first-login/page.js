@@ -36,7 +36,7 @@ export default function FirstLoginPage() {
       if (!res.ok || payload?.ok !== true) {
         // A 401 here means the session died, not that the password was wrong.
         if (res.status === 401 && payload?.error !== "Your current password is incorrect") {
-          router.replace("/login");
+          router.replace("/login?expired");
           return;
         }
         setError(payload?.error || "Something went wrong. Please try again.");

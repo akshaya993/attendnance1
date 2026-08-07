@@ -3,11 +3,7 @@
 //
 // Later features replace the placeholder below with a real role dashboard.
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
-import { getSession, isPasswordExpired } from "@/lib/auth";
-import { findAuthProfileById } from "@/lib/repos/authRepo";
+import { requireActiveSession } from "@/lib/guard";
 import LogoutButton from "@/components/auth/LogoutButton";
 
 // Human-readable role names. The app's internal values stay lowercase.
@@ -19,40 +15,12 @@ const ROLE_LABEL = {
 };
 
 export default async function HomePage() {
-  // getSession() expects something with a .cookies.get(name) method. A server
-  // component has no `request` object, so we hand it the cookie store, which
-  // has exactly that shape.
-  const cookieStore = await cookies();
-  const session = await getSession({ cookies: cookieStore });
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  const profile = await findAuthProfileById(session.profileId);
-
-  // The account was deleted after the token was issued.
-  if (!profile) {
-    redirect("/login");
-  }
-
-  // THE KILL SWITCH. If profiles.session_epoch has moved past the epoch baked
-  // into this token, the token is revoked - a password was changed, or an
-  // admin forced a sign-out everywhere. Signature and expiry are checked in
-  // lib/auth.js; this database comparison can only happen server-side.
-  if (Number(profile.sessionEpoch ?? 0) !== Number(session.epoch ?? 0)) {
-    redirect("/login");
-  }
-
-  // FORCED PASSWORD CHANGE. The login route sends people to /first-login, but
-  // that alone is skippable by typing "/" in the address bar. Enforcing it
-  // here as well is what actually makes the admin 30 day rotation binding.
-  if (
-    Boolean(profile.mustChangePassword) ||
-    isPasswordExpired(profile.role, profile.passwordChangedAt)
-  ) {
-    redirect("/first-login");
-  }
+  // One call replaces the four checks that used to be written out here:
+  // valid cookie -> profile still exists -> session_epoch still current ->
+  // forced password change. The logic moved to lib/guard.js so that every
+  // page and API route reuses it instead of copy-pasting it.
+  // Reasoning: context/features/09-notifications/09-0-decisions.md
+  const { profile } = await requireActiveSession();
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-12">

@@ -1,45 +1,29 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-import { findAuthProfileById, setPassword } from "@/lib/repos/authRepo";
+import { setPassword } from "@/lib/repos/authRepo";
 import {
   COOKIE_NAME,
   createSessionToken,
-  getSession,
   sessionCookieOptions,
   validatePassword,
 } from "@/lib/auth";
+import { requireActiveApiSession } from "@/lib/guard";
 
-const NOT_SIGNED_IN = "Not signed in";
+// Used only when a profile somehow has no password hash at all. The
+// "not signed in" and epoch-mismatch messages now come from lib/guard.js.
 const SESSION_ENDED = "Your session has ended. Please sign in again.";
 
 export async function POST(request) {
   try {
-    // 1. Signature check on the cookie.
-    const session = await getSession(request);
-    if (!session) {
-      return NextResponse.json(
-        { ok: false, error: NOT_SIGNED_IN },
-        { status: 401 }
-      );
-    }
-
-    const profile = await findAuthProfileById(session.profileId);
-    if (!profile) {
-      return NextResponse.json(
-        { ok: false, error: NOT_SIGNED_IN },
-        { status: 401 }
-      );
-    }
-
-    // 2. Kill-switch check. proxy.js cannot do this (Edge has no pg), so every
-    //    route that matters repeats it against the live database value.
-    if (Number(profile.sessionEpoch) !== Number(session.epoch)) {
-      return NextResponse.json(
-        { ok: false, error: SESSION_ENDED },
-        { status: 401 }
-      );
-    }
+    // Session, profile existence, and the session_epoch kill-switch, in one
+    // call. This used to be ~25 lines copy-pasted from app/page.js; there is
+    // now exactly one copy, in lib/guard.js.
+    //
+    // NOTE: requireActiveApiSession deliberately does NOT enforce
+    // mustChangePassword. This is the route that CLEARS that flag, so
+    // enforcing it here would trap the user with no way out.
+    const { profile } = await requireActiveApiSession(request);
 
     let body;
     try {
@@ -72,9 +56,12 @@ export async function POST(request) {
       );
     }
 
-    // 3. A valid session is NOT enough. An unlocked phone left on a table must
-    //    not be able to take the account over silently.
-    const currentOk = await bcrypt.compare(currentPassword, profile.passwordHash);
+    // A valid session is NOT enough. An unlocked phone left on a table must
+    // not be able to take the account over silently.
+    const currentOk = await bcrypt.compare(
+      currentPassword,
+      profile.passwordHash
+    );
     if (!currentOk) {
       return NextResponse.json(
         { ok: false, error: "Your current password is incorrect" },
@@ -105,12 +92,12 @@ export async function POST(request) {
       );
     }
 
-    // 4. Save. The epoch bump inside setPassword logs out every OTHER device.
+    // Save. The epoch bump inside setPassword logs out every OTHER device.
     const passwordHash = await bcrypt.hash(newPassword, 10);
     const { sessionEpoch } = await setPassword(profile.id, passwordHash);
 
-    // 5. Re-mint THIS device's cookie at the new epoch, so the person who just
-    //    changed their own password is not thrown back to the login screen.
+    // Re-mint THIS device's cookie at the new epoch, so the person who just
+    // changed their own password is not thrown back to the login screen.
     const token = await createSessionToken({
       profileId: profile.id,
       role: profile.role,
@@ -122,9 +109,23 @@ export async function POST(request) {
       ok: true,
       data: { redirectTo: "/" },
     });
-    response.cookies.set(COOKIE_NAME, token, sessionCookieOptions(profile.role));
+    response.cookies.set(
+      COOKIE_NAME,
+      token,
+      sessionCookieOptions(profile.role)
+    );
     return response;
   } catch (err) {
+    // requireActiveApiSession throws AuthError(401). Without this branch it
+    // would fall through to the 500 below, and app/first-login/page.js checks
+    // for a 401 to decide whether to send the user back to /login.
+    if (err.name === "AuthError") {
+      return NextResponse.json(
+        { ok: false, error: err.message },
+        { status: err.status }
+      );
+    }
+
     console.error("[auth/change-password] unexpected failure", err);
     return NextResponse.json(
       { ok: false, error: "Something went wrong. Please try again." },

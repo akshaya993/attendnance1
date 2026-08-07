@@ -54,16 +54,30 @@ export async function proxy(request) {
   if (PUBLIC_APIS.has(pathname)) {
     return NextResponse.next();
   }
-
+  
   if (PUBLIC_PAGES.has(pathname)) {
-    // Already signed in? Don't show the login form again.
-    const session = await getSession(request);
-    if (session && pathname === "/login") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-    return NextResponse.next();
-  }
+  // Already signed in? Don't show the login form again.
+  //
+  // EXCEPT when ?expired=1 is present. lib/guard.js appends that marker when
+  // it rejects a session whose epoch no longer matches the database. Without
+  // this escape hatch the app deadlocks: the guard sends the user to /login
+  // because the session is revoked, and this block sends them straight back
+  // to / because the cookie is still validly SIGNED. proxy.js runs on the
+  // Edge runtime and cannot read profiles.session_epoch to know any better.
+  // Symptom: ERR_TOO_MANY_REDIRECTS after any password change, on every
+  // other device the user owns.
+  //
+  // The marker is not security-sensitive - the worst it can do is show the
+  // login form, which is public anyway.
+  const expired = request.nextUrl.searchParams.get("expired") === "1";
+  const session = await getSession(request);
 
+  if (session && pathname === "/login" && !expired) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  return NextResponse.next();
+  }
+  
   // ---------- everything else needs a session ----------
   const session = await getSession(request);
 

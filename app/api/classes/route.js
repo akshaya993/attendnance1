@@ -1,4 +1,5 @@
-import { getSession, requireRole } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { requireActiveApiSession } from "@/lib/guard";
 import { listClassesByBranch } from "@/lib/repos/coreRepo";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,10 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request) {
 	try {
-		const user = await getSession(request);
+		// Session AND kill-switch. getSession() alone only proves the cookie
+        // was signed by us - it cannot tell that the session was revoked,
+        // because proxy.js runs on Edge and cannot reach pg. See lib/guard.js.
+        const { session: user } = await requireActiveApiSession(request);
 		requireRole(user, ["admin", "teacher"]);
 
 		const data = await listClassesByBranch(user.branchId);
