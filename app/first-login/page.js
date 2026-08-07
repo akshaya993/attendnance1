@@ -35,8 +35,11 @@ export default function FirstLoginPage() {
 
       if (!res.ok || payload?.ok !== true) {
         // A 401 here means the session died, not that the password was wrong.
+        // The "?expired=1" marker must carry the value 1: proxy.js tests for
+        // the exact string "1", and a bare "?expired" reads as "" and fails,
+        // which sends the user on a pointless extra bounce through "/".
         if (res.status === 401 && payload?.error !== "Your current password is incorrect") {
-          router.replace("/login?expired");
+          router.replace("/login?expired=1");
           return;
         }
         setError(payload?.error || "Something went wrong. Please try again.");

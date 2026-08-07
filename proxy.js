@@ -9,8 +9,8 @@
 // RUNTIME LIMIT: this executes on the Edge runtime, which cannot load `pg`.
 // So it can only verify the JWT signature and expiry. It CANNOT check
 // profiles.session_epoch. Every Node-side page or route that handles real
-// data must ALSO compare session.epoch against the database value - see
-// app/page.js for the pattern.
+// data must ALSO compare session.epoch against the database value - call
+// lib/guard.js rather than writing that check out again.
 //
 // POLICY: default-deny. Anything not listed below needs a valid session.
 
@@ -54,30 +54,34 @@ export async function proxy(request) {
   if (PUBLIC_APIS.has(pathname)) {
     return NextResponse.next();
   }
-  
-  if (PUBLIC_PAGES.has(pathname)) {
-  // Already signed in? Don't show the login form again.
-  //
-  // EXCEPT when ?expired=1 is present. lib/guard.js appends that marker when
-  // it rejects a session whose epoch no longer matches the database. Without
-  // this escape hatch the app deadlocks: the guard sends the user to /login
-  // because the session is revoked, and this block sends them straight back
-  // to / because the cookie is still validly SIGNED. proxy.js runs on the
-  // Edge runtime and cannot read profiles.session_epoch to know any better.
-  // Symptom: ERR_TOO_MANY_REDIRECTS after any password change, on every
-  // other device the user owns.
-  //
-  // The marker is not security-sensitive - the worst it can do is show the
-  // login form, which is public anyway.
-  const expired = request.nextUrl.searchParams.get("expired") === "1";
-  const session = await getSession(request);
 
-  if (session && pathname === "/login" && !expired) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (PUBLIC_PAGES.has(pathname)) {
+    // Already signed in? Don't show the login form again.
+    //
+    // EXCEPT when ?expired=1 is present. lib/guard.js appends that marker when
+    // it rejects a session whose epoch no longer matches the database. Without
+    // this escape hatch the app deadlocks: the guard sends the user to /login
+    // because the session is revoked, and this block sends them straight back
+    // to / because the cookie is still validly SIGNED. proxy.js runs on the
+    // Edge runtime and cannot read profiles.session_epoch to know any better.
+    // Symptom: ERR_TOO_MANY_REDIRECTS after any password change, on every
+    // other device the user owns.
+    //
+    // The value must be exactly "1". A bare "?expired" makes .get() return an
+    // empty string, which fails this test and lets the bounce happen anyway.
+    // Both lib/guard.js and app/first-login/page.js must send "?expired=1".
+    //
+    // The marker is not security-sensitive - the worst it can do is show the
+    // login form, which is public anyway.
+    const expired = request.nextUrl.searchParams.get("expired") === "1";
+    const session = await getSession(request);
+
+    if (session && pathname === "/login" && !expired) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
   }
-  return NextResponse.next();
-  }
-  
+
   // ---------- everything else needs a session ----------
   const session = await getSession(request);
 
