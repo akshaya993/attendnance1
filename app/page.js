@@ -1,50 +1,35 @@
-// The signed-in home page. Server component - it reads the session on the
-// server, so an unauthenticated visitor never receives any of this HTML.
+// The post-login router. This page renders NOTHING.
 //
-// Later features replace the placeholder below with a real role dashboard.
+// WHY IT EXISTS
+// app/api/auth/login/route.js sends every successful login to "/". This file
+// is the one place that decides where each role actually goes, so the login
+// route never has to know about dashboards and never needs editing when a new
+// role or dashboard appears.
+//
+// requireActiveSession() runs FIRST, so a revoked session is bounced to
+// /login?expired=1 and a user owing a password change is bounced to
+// /first-login BEFORE any role routing happens.
+//
+// profile.role is constrained by the database to exactly these four values
+// (profiles.role CHECK in db/schema.sql), and each one has a matching folder
+// under app/. The fallback exists only so a future fifth role fails loudly in
+// one obvious place instead of 404ing somewhere confusing.
+
+import { redirect } from "next/navigation";
 
 import { requireActiveSession } from "@/lib/guard";
-import LogoutButton from "@/components/auth/LogoutButton";
 
-// Human-readable role names. The app's internal values stay lowercase.
-const ROLE_LABEL = {
-  admin: "Administrator",
-  teacher: "Teacher",
-  parent: "Parent",
-  bus: "Bus staff",
+// role value -> URL. These four URLs are also gated by ROLE_PREFIXES in
+// proxy.js. If you add a row here, add the matching gate there too.
+const ROLE_HOME = {
+  admin: "/admin",
+  teacher: "/teacher",
+  parent: "/parent",
+  bus: "/bus",
 };
 
 export default async function HomePage() {
-  // One call replaces the four checks that used to be written out here:
-  // valid cookie -> profile still exists -> session_epoch still current ->
-  // forced password change. The logic moved to lib/guard.js so that every
-  // page and API route reuses it instead of copy-pasting it.
-  // Reasoning: context/features/09-notifications/09-0-decisions.md
   const { profile } = await requireActiveSession();
 
-  return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-12">
-      <p className="label-micro text-muted">SIGNED IN</p>
-
-      <h1 className="mt-3 text-3xl">{profile.fullName}</h1>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="pill">{ROLE_LABEL[profile.role] ?? profile.role}</span>
-        <span className="text-muted text-sm">{profile.phoneNumber}</span>
-      </div>
-
-      <div className="card mt-8 p-6">
-        <p className="label-micro text-muted">YOUR DASHBOARD</p>
-        <p className="mt-3 text-sm">
-          Nothing here yet. The {ROLE_LABEL[profile.role] ?? profile.role} home
-          screen is built in a later feature. Authentication, sessions and
-          sign-out are working - that is what this page proves.
-        </p>
-      </div>
-
-      <div className="mt-8">
-        <LogoutButton />
-      </div>
-    </div>
-  );
+  redirect(ROLE_HOME[profile.role] ?? "/login?expired=1");
 }
