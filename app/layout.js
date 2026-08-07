@@ -1,11 +1,14 @@
 // app/layout.js
-// App shell — created in Feature 13.
-// Owns: <html data-theme>, page metadata, the top bar, the theme toggle.
-// Feature 09 mounts <BellMenu/> and feature 11 mounts <ProfileIcon/> into
-// the same <header> below. Do NOT recreate this file in a later feature.
+// App shell — created in Feature 13, made session-aware in Feature 09.
+// Owns: <html data-theme>, page metadata, the top bar, the theme toggle,
+// and the notification bell.
+// Feature 11 mounts <ProfileIcon/> into the same <header> below, to the RIGHT
+// of the theme toggle. Do NOT recreate this file in a later feature.
 
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
+import BellMenu from "@/components/notifications/BellMenu";
+import { getActiveSession } from "@/lib/guard";
 
 export const metadata = {
   title: "Greenwood School",
@@ -31,7 +34,22 @@ const themeScript = `
 })();
 `;
 
-export default function RootLayout({ children }) {
+// WHY THIS LAYOUT IS NOW async
+//   The bell must not appear on /login, /first-login or /forgot-password -
+//   there is nobody to notify yet, and rendering it there would fire a 401 on
+//   every visit. getActiveSession() answers "is somebody signed in" on the
+//   server, so signed-out pages ship no bell at all.
+//
+//   COST: getActiveSession() is wrapped in React cache(), so the layout and
+//   the page below it share ONE database round trip per request, not two. On
+//   signed-out pages there is no cookie, so it returns null without touching
+//   PostgreSQL at all.
+//
+//   SIDE EFFECT: reading cookies makes every route dynamic. /login and friends
+//   now build as `ƒ` instead of `○`. That is expected, not a regression.
+export default async function RootLayout({ children }) {
+  const active = await getActiveSession();
+
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
@@ -40,7 +58,13 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen flex flex-col">
         <header className="flex items-center justify-between border-b border-line px-4 py-3">
           <span className="label-micro">GREENWOOD / PORTAL</span>
-          <ThemeToggle />
+
+          <div className="flex items-center gap-2">
+            {active ? <BellMenu /> : null}
+            <ThemeToggle />
+            {/* Feature 11: mount <ProfileIcon/> HERE, to the RIGHT of the
+                theme toggle, so the bell stays to the LEFT of the profile. */}
+          </div>
         </header>
 
         <main className="flex-1">{children}</main>
