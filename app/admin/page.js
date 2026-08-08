@@ -5,7 +5,9 @@
 // under /admin/... which proxy.js already restricts to admins.
 //
 // WHAT GOES HERE, BY FEATURE (add your row when you build it):
-//   09 Notifications - link to the Broadcast Center at /admin/broadcast
+//   09 Notifications - NOTHING HERE. Its entry point is the "+" icon in the
+//                      top bar (components/notifications/ComposeButton.js),
+//                      reachable from every page, not just this one.
 //   01 Attendance    - school-wide attendance summary
 //   04 Fees          - collection totals and overdue count
 //   07 Marks         - exam and result status
@@ -41,7 +43,7 @@ export default async function AdminHomePage() {
         <p className="label-micro text-muted">ADMIN TOOLS</p>
         <p className="mt-3 text-sm">
           Nothing here yet. Each feature adds its section to this page as it is
-          built. Notifications is first.
+          built. To send a notification, use the + in the top bar.
         </p>
       </div>
 

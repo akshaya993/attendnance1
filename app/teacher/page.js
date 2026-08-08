@@ -3,11 +3,13 @@
 // DO NOT CREATE ANOTHER TEACHER HOME PAGE. This is it.
 //
 // WHAT GOES HERE, BY FEATURE (add your row when you build it):
-//   01 Attendance - today's classes, mark attendance entry point
-//   07 Marks      - enter and review marks for assigned classes
-//   10 Timetable  - this teacher's period schedule
-//   05 Groups     - class group chats
-//   06 Leaves     - approve or forward student leave requests
+//   09 Notifications - NOTHING HERE. Its entry point is the "+" icon in the
+//                      top bar (components/notifications/ComposeButton.js).
+//   01 Attendance    - today's classes, mark attendance entry point
+//   07 Marks         - enter and review marks for assigned classes
+//   10 Timetable     - this teacher's period schedule
+//   05 Groups        - class group chats
+//   06 Leaves        - approve or forward student leave requests
 //
 // The full editorial layout - sidebar on desktop, bottom tabs on mobile, per
 // ui-context.md - is NOT built yet. It is scheduled as its own feature after
@@ -38,7 +40,7 @@ export default async function TeacherHomePage() {
         <p className="label-micro text-muted">YOUR CLASSES</p>
         <p className="mt-3 text-sm">
           Nothing here yet. Each feature adds its section to this page as it is
-          built.
+          built. To send a notification, use the + in the top bar.
         </p>
       </div>
 
