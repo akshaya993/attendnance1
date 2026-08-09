@@ -114,8 +114,23 @@ export async function proxy(request) {
 // Which requests the proxy runs on. Static files, images and the Next.js
 // internals are excluded - running auth checks on a CSS file wastes time on
 // every single request.
+//
+// FEATURE 09 ADDED "manifest.json" TO THIS LIST.
+//   A phone reads /manifest.json to decide whether the app can be installed,
+//   and it reads it as an anonymous request with no session cookie. While this
+//   route was protected, the browser got a 401 back and simply concluded the
+//   app was not installable - no error anywhere, the install option just never
+//   appeared. /sw.js needs the same treatment and already gets it, because it
+//   ends in .js and is caught by the extension list below.
+//
+//   IT IS NAMED EXPLICITLY, NOT ADDED AS A BLANKET "json" EXTENSION.
+//   Writing `json` into the extension list would make EVERY future path
+//   ending in .json public, so the day somebody adds /api/fees/export.json it
+//   would silently skip authentication and leak the whole school's data. One
+//   filename is public because we chose it. An extension would be a standing
+//   invitation to an accident.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|css|js)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|css|js)$).*)",
   ],
 };

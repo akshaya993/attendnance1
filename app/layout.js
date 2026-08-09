@@ -1,7 +1,8 @@
 // app/layout.js
-// App shell — created in Feature 13, made session-aware in Feature 09.
-// Owns: <html data-theme>, page metadata, the top bar, the theme toggle,
-// the compose button and the notification bell.
+// App shell — created in Feature 13, made session-aware and installable in
+// Feature 09.
+// Owns: <html data-theme>, page metadata, the PWA manifest link, the top bar,
+// the theme toggle, the compose button and the notification bell.
 // Feature 11 mounts <ProfileIcon/> into the same <header> below, to the RIGHT
 // of the theme toggle. Do NOT recreate this file in a later feature.
 //
@@ -18,8 +19,31 @@ import { getActiveSession } from "@/lib/guard";
 export const metadata = {
   title: "Greenwood School",
   description: "Greenwood High School portal",
+
+  // PWA. Next.js turns this into <link rel="manifest" href="/manifest.json">.
+  // Do not hand-write that tag - declaring it here keeps it in one place and
+  // out of the <head> markup.
+  manifest: "/manifest.json",
+
+  // iOS DOES NOT READ THE MANIFEST for the home-screen icon or for hiding the
+  // address bar. Safari needs its own two hints, or an iPhone parent who adds
+  // the app to their home screen gets a blurry screenshot thumbnail instead of
+  // the school logo, inside a normal browser window.
+  appleWebApp: {
+    capable: true,
+    title: "Greenwood",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/icon-512.png",
+  },
 };
 
+// The hardcoded hex here is the documented exception to the "never hardcode a
+// colour" rule in app/globals.css. The phone paints its status bar from this
+// value before any CSS exists, so a variable is impossible. IT MUST STAY
+// IDENTICAL to "theme_color" and "background_color" in public/manifest.json,
+// otherwise the status bar is a slightly different shade from the app.
 export const viewport = {
   themeColor: "#0a0a0b",
   width: "device-width",
