@@ -2,18 +2,22 @@
 // App shell — created in Feature 13, made session-aware and installable in
 // Feature 09.
 // Owns: <html data-theme>, page metadata, the PWA manifest link, the top bar,
-// the theme toggle, the compose button and the notification bell.
+// the theme toggle, the compose button, the notification bell and the
+// push-permission prompt.
 // Feature 11 mounts <ProfileIcon/> into the same <header> below, to the RIGHT
 // of the theme toggle. Do NOT recreate this file in a later feature.
 //
-// HEADER ICON ORDER (left to right): compose, bell, theme, profile.
-// Compose sits leftmost so the bell stays immediately LEFT of the profile
-// icon, which is what the Feature 11 note below requires.
+// HEADER ICON ORDER (left to right): push prompt, compose, bell, theme, profile.
+// The push prompt sits leftmost because it is TEMPORARY - it removes itself for
+// good once the user answers - leaving the permanent order compose, bell, theme,
+// profile. Compose stays left of the bell so the bell remains immediately LEFT
+// of the profile icon, which is what the Feature 11 note below requires.
 
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
 import BellMenu from "@/components/notifications/BellMenu";
 import ComposeButton from "@/components/notifications/ComposeButton";
+import PushSetup from "@/components/notifications/PushSetup";
 import { getActiveSession } from "@/lib/guard";
 
 export const metadata = {
@@ -72,6 +76,10 @@ const themeScript = `
 //   The same session gives us the ROLE, which is how the compose button knows
 //   whether to draw itself. No extra query.
 //
+//   The push prompt is gated the same way, for a stronger reason: a push
+//   subscription is stored against a profile id, so asking permission before
+//   sign-in would produce a subscription belonging to nobody.
+//
 //   COST: getActiveSession() is wrapped in React cache(), so the layout and
 //   the page below it share ONE database round trip per request, not two. On
 //   signed-out pages there is no cookie, so it returns null without touching
@@ -92,6 +100,7 @@ export default async function RootLayout({ children }) {
           <span className="label-micro">GREENWOOD / PORTAL</span>
 
           <div className="flex items-center gap-2">
+            {active ? <PushSetup /> : null}
             {active ? <ComposeButton role={active.profile.role} /> : null}
             {active ? <BellMenu /> : null}
             <ThemeToggle />
