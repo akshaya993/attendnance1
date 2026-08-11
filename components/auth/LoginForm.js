@@ -2,10 +2,11 @@
 
 // The interactive part of /login. Client component because it needs useState
 // and event handlers. It only ever talks to /api/auth/login - no SQL, no DB,
-// no session logic lives here (context/code-standards.md: pages never touch
+// no session logic lives here (the code standards doc: pages never touch
 // the database).
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PasswordField from "./PasswordField";
 
@@ -117,9 +118,9 @@ export default function LoginForm() {
       </button>
 
       <p className="mt-5 text-center text-sm">
-        <a href="/forgot-password" className="text-muted hover:text-body underline">
-          Forgot password?
-        </a>
+        <Link href="/forgot-password" className="text-muted hover:text-body underline">
+         Forgot password?
+        </Link>
       </p>
     </form>
   );

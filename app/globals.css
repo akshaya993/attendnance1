@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------
    Veritas Editorial design tokens
-   Source of truth: context/ui-context.md  (do not invent colours)
+   Source of truth: the UI context doc in context/  (do not invent colours)
    Created in Feature 13. Tailwind v4 = CSS-first, there is NO
    tailwind.config.js. All tokens live here.
    NEVER hardcode a hex value in a component. Use the classes below.
@@ -128,7 +128,13 @@ h1, h2, h3 {
   padding: 18px;
 }
 
-/* Status pill */
+/* Status pill.
+   DELIBERATELY HAS NO BACKGROUND AND NO TEXT COLOUR, and adding one would be
+   a bug. Plain CSS in this file outranks Tailwind's utility classes, so a
+   background here would override the bg-warn-soft / bg-danger-soft that
+   components/notifications/NotificationItem.js puts on important and urgent
+   items, and every pill in the app would come out the same colour. This class
+   supplies the SHAPE. Each caller supplies the COLOUR. */
 .pill {
   display: inline-block;
   font-family: var(--font-mono);
@@ -144,6 +150,10 @@ h1, h2, h3 {
 .cta {
   display: inline-flex;
   align-items: center;
+  /* Centres the label. Without this, a full-width CTA - which is how every
+     form button on a phone renders - packs its text against the left edge and
+     looks like a mistake. */
+  justify-content: center;
   gap: 8px;
   background-color: var(--cta-bg);
   color: var(--cta-text);
@@ -161,6 +171,41 @@ h1, h2, h3 {
 
 .cta:hover { opacity: 0.88; }
 .cta:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Square header icon: the bell, the theme switch, the compose button, the
+   alerts prompt.
+
+   WHY THIS EXISTS: the same long list of utility classes was pasted into four
+   separate components. Change the header's look and you had to find all four,
+   and one of them always got missed.
+
+   44px is not a style choice. It is the smallest target a thumb hits reliably,
+   and it is the same minimum used by .cta and .field. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  width: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border-line);
+  background-color: var(--bg-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.icon-button:hover { color: var(--text-body); }
+.icon-button:disabled { opacity: 0.5; cursor: default; }
+
+/* The one header icon that is meant to be noticed - currently only the
+   "turn on alerts" prompt, which disappears for good once it is used.
+
+   IT MUST BE DEFINED AFTER .icon-button. Both are single class names, so they
+   carry equal weight and the LAST one written wins. Move it above and the
+   colour silently stops working. */
+.icon-button-attention { color: var(--warn); }
+.icon-button-attention:hover { color: var(--text-body); }
 
 /* Text input */
 .field {

@@ -12,10 +12,18 @@
 //   and iOS, or it is refused outright. Chrome allows it without one but
 //   punishes sites that ask on page load by quietly suppressing the prompt for
 //   repeat visitors. A single tap is the only approach that works everywhere,
-//   so the button is a requirement, not a preference.
+//   so the button is a requirement, not a preference. Even the automatic weekly
+//   panel below only OPENS by itself - the asking is still done by a tap.
 //
-// IT RENDERS NOTHING once permission is settled - granted or denied. A parent
-// sees it once, ever.
+// THE AGREED RULE (Feature 09): the icon stays visible until alerts are
+// actually on, and we re-offer at most once every seven days. Granted makes it
+// disappear for good.
+//
+// THE HARD BROWSER LIMIT YOU CANNOT DESIGN AROUND: once someone picks Block,
+// requestPermission() returns "denied" instantly, forever, without showing
+// anything. No site can re-open that dialog - only the user can, through the
+// padlock in the address bar. So for a blocked browser this component stops
+// asking and starts EXPLAINING, which is the only thing left that works.
 //
 // MUST NEVER IMPORT lib/push.js OR ANYTHING REACHING lib/db.js. Those are Node
 // modules; pulling one into a "use client" file breaks the build.
@@ -26,6 +34,47 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Injected at build time by Next.js because of the NEXT_PUBLIC_ prefix. The
 // PRIVATE key has no prefix precisely so it can never end up here.
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+// How long to wait before the panel opens by itself again.
+const NUDGE_DAYS = 7;
+
+// THE THIRD THING THIS APP KEEPS IN localStorage, after the theme and the OTP
+// cooldown deadline. It holds a date, nothing else - never a token, never
+// anything about who is signed in. localStorage is readable by any script on
+// the page, so the only safe things to keep there are ones that would not
+// matter if a stranger read them. A date the user is next allowed to be asked
+// a question qualifies.
+const NUDGE_KEY = "greenwood.push.nudge";
+
+/**
+ * Reads the "do not nudge before" date. Returns 0 if there isn't one, which
+ * means "nudge now".
+ *
+ * Wrapped because localStorage THROWS, not returns null, in private browsing
+ * and when a browser is configured to block site data. An unhandled throw here
+ * would take the whole header down with it.
+ */
+function readNudgeAfter() {
+  try {
+    const raw = window.localStorage.getItem(NUDGE_KEY);
+    const value = raw ? Number(raw) : 0;
+    return Number.isFinite(value) ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Books the next nudge for a week from now. Silently does nothing if storage
+ *  is unavailable - the cost is being asked again on the next visit, which is
+ *  a far smaller problem than a crash. */
+function postponeNudge() {
+  try {
+    const next = Date.now() + NUDGE_DAYS * 24 * 60 * 60 * 1000;
+    window.localStorage.setItem(NUDGE_KEY, String(next));
+  } catch {
+    /* storage unavailable - ignore */
+  }
+}
 
 /**
  * The push API wants the key as raw bytes, but VAPID keys travel as
@@ -71,11 +120,15 @@ function keyMatches(existingKey, currentBytes) {
 }
 
 export default function PushSetup() {
-  // "checking"  - deciding what to show, render nothing
-  // "prompt"    - supported, permission not answered yet, show the button
-  // "working"   - mid-request
-  // "hidden"    - nothing to do: granted, denied, or unsupported
+  // "checking" - deciding what to show, render nothing
+  // "ask"      - supported, never answered, show the icon and offer the prompt
+  // "blocked"  - they chose Block, show the icon and explain how to undo it
+  // "working"  - mid-request
+  // "hidden"   - nothing to do: alerts are on, or this browser cannot do push
   const [phase, setPhase] = useState("checking");
+
+  // The little panel under the icon. Opens on a tap, or by itself once a week.
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // Guards against React running effects twice in development, which would
   // otherwise fire two subscribe calls on every page load.
@@ -174,21 +227,24 @@ export default function PushSetup() {
       if (Notification.permission === "granted") {
         // Already allowed. Re-subscribe silently on every load, because a
         // browser can rotate or drop a subscription on its own and the only way
-        // to notice is to ask for it again.
+        // to notice is to ask for it again. Nothing is rendered.
         await subscribe().catch((err) => console.error("[push] subscribe failed:", err));
         if (alive) setPhase("hidden");
         return;
       }
 
-      if (Notification.permission === "denied") {
-        // Cannot be re-prompted from code. Only the user can undo this, via the
-        // padlock in the address bar. Showing a dead button would be worse than
-        // showing nothing.
-        if (alive) setPhase("hidden");
-        return;
-      }
+      if (!alive) return;
 
-      if (alive) setPhase("prompt");
+      // Not granted. The icon stays put either way - that is the agreed rule.
+      // Only the panel's wording differs.
+      setPhase(Notification.permission === "denied" ? "blocked" : "ask");
+
+      // Open the panel by itself, but at most once a week. Someone who is not
+      // interested sees a small icon and nothing else for seven days.
+      if (readNudgeAfter() <= Date.now()) {
+        setPanelOpen(true);
+        postponeNudge();
+      }
     };
 
     start();
@@ -198,55 +254,130 @@ export default function PushSetup() {
     };
   }, [subscribe]);
 
-  const handleClick = async () => {
+  // Tapping the icon always opens the panel, whatever the browser has decided.
+  // It does not spend the weekly budget - the user asked for this one.
+  const togglePanel = () => setPanelOpen((open) => !open);
+
+  const dismiss = () => {
+    setPanelOpen(false);
+    postponeNudge();
+  };
+
+  const handleEnable = async () => {
     setPhase("working");
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
         await subscribe();
+        setPanelOpen(false);
+        setPhase("hidden");
+        return;
       }
+      // They chose Block. The dialog can never be shown again, so from here on
+      // the panel explains instead of asking. The icon stays.
+      setPhase("blocked");
+      setPanelOpen(false);
+      postponeNudge();
     } catch (err) {
       console.error("[push] enabling alerts failed:", err);
+      setPhase("blocked");
+      setPanelOpen(false);
+      postponeNudge();
     }
-    // Either way the button's job is done. Granted means it is no longer
-    // needed; denied means it can never work again.
-    setPhase("hidden");
   };
 
-  if (phase !== "prompt" && phase !== "working") {
+  if (phase === "checking" || phase === "hidden") {
     return null;
   }
 
+  const blocked = phase === "blocked";
+
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={phase === "working"}
-      aria-label="Turn on alerts on this device"
-      title="Turn on alerts on this device"
-      // Same 44px square as the bell and the theme toggle so the header stays
-      // on one grid. text-warn on purpose: this is the one header control that
-      // should catch the eye, and it disappears for good once it is used.
-      className="flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-raised text-warn transition-colors duration-150 hover:text-body disabled:opacity-50"
-    >
-      {/* A bell with a line through it - alerts are currently off. Distinct
-          from the plain bell next to it, which opens the list. */}
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={togglePanel}
+        disabled={phase === "working"}
+        aria-label={blocked ? "Alerts are blocked on this device" : "Turn on alerts on this device"}
+        title={blocked ? "Alerts are blocked on this device" : "Turn on alerts on this device"}
+        aria-expanded={panelOpen}
+        // Shared square from globals.css. The attention colour is dropped once
+        // the browser is blocked - at that point it is information, not an
+        // invitation, and a permanently yellow icon just becomes wallpaper.
+        className={blocked ? "icon-button" : "icon-button icon-button-attention"}
       >
-        <path d="M8.7 3.7A6 6 0 0 1 18 8.7c0 5 2 6.3 2 6.3H7" />
-        <path d="M6.3 6.3A6 6 0 0 0 6 8.7c0 5-2 6.3-2 6.3h3" />
-        <path d="M10.3 19a2 2 0 0 0 3.4 0" />
-        <path d="M2 2l20 20" />
-      </svg>
-    </button>
+        {/* A bell with a line through it - alerts are currently off. Distinct
+            from the plain bell next to it, which opens the list. */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8.7 3.7A6 6 0 0 1 18 8.7c0 5 2 6.3 2 6.3H7" />
+          <path d="M6.3 6.3A6 6 0 0 0 6 8.7c0 5-2 6.3-2 6.3h3" />
+          <path d="M10.3 19a2 2 0 0 0 3.4 0" />
+          <path d="M2 2l20 20" />
+        </svg>
+      </button>
+
+      {panelOpen && (
+        <div
+          role="dialog"
+          aria-label="Alerts on this device"
+          className="card absolute right-0 top-full z-50 mt-2 w-72 text-left"
+        >
+          <p className="label-micro">Alerts</p>
+
+          {blocked ? (
+            <>
+              <p className="mt-2 text-sm text-body">
+                This browser is blocking alerts, so urgent school messages will
+                not reach you when the app is closed.
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                To switch them back on: tap the padlock next to the web address,
+                set Notifications to Allow, then reload the page. Only you can
+                do this - the app is not allowed to ask again.
+              </p>
+              <button type="button" onClick={dismiss} className="cta mt-4 w-full">
+                Got it
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-body">
+                Get urgent school messages on this device even when the app is
+                closed.
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                Only urgent and important notices are sent this way. You can
+                turn it off at any time.
+              </p>
+              <button
+                type="button"
+                onClick={handleEnable}
+                disabled={phase === "working"}
+                className="cta mt-4 w-full"
+              >
+                {phase === "working" ? "Just a moment" : "Turn on alerts"}
+              </button>
+              <button
+                type="button"
+                onClick={dismiss}
+                className="mt-2 w-full text-xs text-muted hover:text-body"
+              >
+                Not now
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

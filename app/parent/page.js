@@ -10,12 +10,12 @@
 //   06 Leaves     - apply for leave
 //   03 Complaints - raise and track a complaint
 //
-// NOTE for whoever builds the child switcher: ui-context.md rule 9 requires a
+// NOTE for whoever builds the child switcher: rule 9 of the UI context doc requires a
 // child switcher at the top of this page when a family has more than one
 // child. students.parent_profile_id is the link. Do not assume one child.
 //
 // The full editorial layout - sidebar on desktop, bottom tabs on mobile, per
-// ui-context.md - is NOT built yet. It is scheduled as its own feature after
+// the UI context doc - is NOT built yet. It is scheduled as its own feature after
 // Feature 09.
 
 import { requireActiveSession } from "@/lib/guard";

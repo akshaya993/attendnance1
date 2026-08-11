@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { setPassword } from "@/lib/repos/authRepo";
+import { deleteDeviceTokensForProfile } from "@/lib/repos/deviceTokenRepo";
 import {
   COOKIE_NAME,
   createSessionToken,
@@ -95,6 +96,32 @@ export async function POST(request) {
     // Save. The epoch bump inside setPassword logs out every OTHER device.
     const passwordHash = await bcrypt.hash(newPassword, 10);
     const { sessionEpoch } = await setPassword(profile.id, passwordHash);
+
+    // THE SIGN-OUT RULE: no login, no notifications.
+    //
+    // The epoch bump above signed every other device out, so every other device
+    // must stop buzzing too. There is no way to release only the others - this
+    // route never learns which browser is calling it - so ALL of this account's
+    // push subscriptions go.
+    //
+    // THIS DEVICE HEALS ITSELF, IN UNDER A SECOND. On success the browser is
+    // sent to "/", components/notifications/PushSetup.js re-subscribes on every
+    // load where permission is already granted, and saveDeviceToken upserts. So
+    // this browser gets its row straight back while every other device stays
+    // silent until somebody signs in on it again. That is the whole point.
+    //
+    // THE FAILURE IS SWALLOWED ON PURPOSE. The password is already changed by
+    // this line. Throwing here would show an error for something that actually
+    // succeeded, and the user would try again using a password that is now the
+    // old one. A stale push row is a far smaller problem than that.
+    try {
+      await deleteDeviceTokensForProfile(profile.id);
+    } catch (err) {
+      console.error(
+        "[auth/change-password] could not release push subscriptions",
+        err
+      );
+    }
 
     // Re-mint THIS device's cookie at the new epoch, so the person who just
     // changed their own password is not thrown back to the login screen.

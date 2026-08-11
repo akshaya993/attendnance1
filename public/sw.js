@@ -25,6 +25,7 @@
 // but the browser reinstalls the worker whenever the BYTES change, so a version
 // note makes "which version is that phone running" answerable.
 // v1 - Feature 09, initial push + click handling.
+// v2 - the sign-out rule: nothing is drawn on a device with nobody signed in.
 
 // Take over immediately instead of waiting for every old tab to close. Without
 // this, a fix to this file could sit unused for days on a parent's phone.
@@ -37,22 +38,71 @@ self.addEventListener("activate", (event) => {
 });
 
 // -----------------------------------------------------------------------------
-// A DELIBERATELY EMPTY FETCH HANDLER.
+// THERE IS DELIBERATELY NO FETCH HANDLER.
 //
-// Chrome wants a service worker with a fetch handler before it offers "Install
-// app". Having one satisfies that.
+// This worker used to register an empty one, because older browsers demanded a
+// fetch handler before they would offer "Install app". That requirement is gone,
+// and browsers now warn about it: an empty handler still forces every single
+// page request to detour through this worker and back, for no benefit at all.
+// With no handler, the browser skips this worker entirely during navigation.
 //
-// IT MUST STAY EMPTY. Never add caching here. Every real page in this app is
-// behind a login, and a cached page is stored on the DEVICE, not per account.
-// On a shared family phone, caching /parent would serve one parent's child's
-// data to the next person who signs in. Offline support, if it is ever wanted,
-// belongs to a designed feature with an explicit rule about which URLs are safe
-// - never a blanket cache bolted onto notifications.
-//
-// Calling nothing means the request falls through to the network exactly as if
-// this worker did not exist.
+// NEVER ADD CACHING HERE. Every real page in this app is behind a login, and a
+// cached page is stored on the DEVICE, not per account. On a shared family
+// phone, caching /parent would serve one parent's child's data to the next
+// person who signs in. Offline support, if it is ever wanted, belongs to a
+// designed feature with an explicit rule about which URLs are safe - never a
+// blanket cache bolted onto notifications.
 // -----------------------------------------------------------------------------
 self.addEventListener("fetch", () => {});
+
+// -----------------------------------------------------------------------------
+// THE SIGN-OUT RULE: no login, no notification.
+//
+// Signing out already deletes this browser's row from device_tokens, so the
+// server stops pushing here at all. That is the real protection, and it happens
+// on the server. This function is the seatbelt for the gap in between - a push
+// that was already dispatched and is still travelling when the person signs out
+// will still land here, and must not be drawn.
+//
+// HOW IT ASKS. A service worker cannot read the session cookie: it is httpOnly,
+// which is exactly what stops a script from stealing it. What it CAN do is make
+// an ordinary same-origin request, and the browser attaches the cookie by
+// itself. So we call a route that already sits behind the login and let the
+// ANSWER tell us. 401 means nobody is signed in on this device.
+//
+// WHY THIS ROUTE. /api/notifications?count_only=true already exists, returns a
+// tiny {unreadCount} and nothing private, and proxy.js already answers it with
+// 401 for a caller with no session. No new endpoint was invented for this.
+//
+// no-store MATTERS. A cached 200 from earlier would happily hide the fact that
+// the person has since signed out.
+//
+// IF THE CHECK ITSELF FAILS, WE SHOW THE NOTIFICATION. We cannot prove anybody
+// is signed out, and swallowing a real "school is closed tomorrow" is worse
+// than showing one message to a phone that just signed out.
+//
+// KNOWN AND ACCEPTED: this proves SOMEBODY is signed in, not WHO. On a shared
+// family phone, one parent would have to sign out and the other sign in inside
+// the couple of seconds a push is in flight for the wrong person to see it.
+// Deleting the row on sign-out closes everything wider than that.
+//
+// SIDE EFFECT TO EXPECT: when we choose to draw nothing, Chrome sometimes puts
+// up its own "This site has been updated in the background" notice instead.
+// That is the browser, not us, and it is the price of refusing to leak.
+// -----------------------------------------------------------------------------
+function hasSignedInUser() {
+  return fetch("/api/notifications?count_only=true", {
+    credentials: "include",
+    cache: "no-store",
+  })
+    .then(function (response) {
+      if (response.status === 401 || response.status === 403) return false;
+      return true;
+    })
+    .catch(function () {
+      return true;
+    });
+}
 
 // -----------------------------------------------------------------------------
 // A PUSH ARRIVED.
@@ -116,7 +166,15 @@ self.addEventListener("push", (event) => {
   // waitUntil is not optional. The browser kills an idle worker within seconds,
   // and showNotification is asynchronous - without this the notification often
   // never appears at all, at random.
-  event.waitUntil(self.registration.showNotification(title, options));
+  //
+  // The sign-out check runs FIRST and the drawing is chained behind it, so both
+  // the question and the answer are covered by the same waitUntil.
+  event.waitUntil(
+    hasSignedInUser().then(function (signedIn) {
+      if (!signedIn) return undefined;
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 // -----------------------------------------------------------------------------

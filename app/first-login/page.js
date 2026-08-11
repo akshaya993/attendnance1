@@ -7,6 +7,7 @@
 // re-checks the session and the current password server-side.
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import PasswordField from "@/components/auth/PasswordField";
@@ -121,8 +122,25 @@ export default function FirstLoginPage() {
             >
               {busy ? "Saving..." : "Save and continue"}
             </button>
-          </form>
-        </div>
+            </form>
+
+  {/* THE ESCAPE HATCH. Somebody sent here by a temporary password may
+      simply not have one that works, and without this they are stuck
+      on a screen demanding a password they do not know.
+      No "?expired=1" is needed here: proxy.js only bounces a signed-in
+      user away from /login, never from /forgot-password. Finishing the
+      reset clears the session cookie, so they land at sign-in cleanly. */}
+  <p className="mt-5 text-center text-sm">
+    <Link
+      href="/forgot-password"
+      className="text-muted hover:text-body underline"
+    >
+      Forgot your password?
+    </Link>
+  </p>
+</div>
+        .
+
 
         <p className="text-muted mt-6 text-center text-sm">
           Changing your password signs you out on your other devices.

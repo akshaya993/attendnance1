@@ -18,7 +18,7 @@
 // its word in a pill, and every kind prints its word in a label. Roughly 1
 // man in 12 cannot separate the amber from the red.
 //
-// NEVER hardcode a hex value here (context/ui-context.md rule 1). Every
+// NEVER hardcode a hex value here (rule 1 of the UI context doc). Every
 // colour below is an existing token from app/globals.css.
 
 /**
@@ -66,7 +66,7 @@ const KIND_STYLE = {
  *
  * Deliberately hand-written rather than pulling in date-fns or dayjs: this is
  * about 12 lines and adding a dependency for it would breach the approved
- * package list in context/code-standards.md.
+ * package list in the code standards doc.
  *
  * Safe from hydration mismatches because this component only ever renders on
  * the client - the rows arrive from fetch(), never from the server render.

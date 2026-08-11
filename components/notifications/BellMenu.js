@@ -198,7 +198,7 @@ export default function BellMenu() {
 					unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
 				}
 				aria-expanded={open}
-				className="relative flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-raised text-muted transition-colors duration-150 hover:text-body"
+				className="relative icon-button"
 			>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none"
 					stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"

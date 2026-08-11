@@ -13,9 +13,19 @@
 // lib/guard.js rather than writing that check out again.
 //
 // POLICY: default-deny. Anything not listed below needs a valid session.
+//
+// SESSIONS SLIDE HERE. Someone who keeps using the app is never signed out.
+// The mechanics, and why this is safe without a database, are explained on
+// slideSession() below.
 
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import {
+  COOKIE_NAME,
+  createSessionToken,
+  getSession,
+  sessionCookieOptions,
+  shouldRefreshSession,
+} from "@/lib/auth";
 
 // Pages a signed-out person must be able to reach.
 const PUBLIC_PAGES = new Set(["/login", "/forgot-password"]);
@@ -44,6 +54,58 @@ const ROLE_PREFIXES = [
 
 function jsonUnauthorized(message, status) {
   return NextResponse.json({ ok: false, error: message }, { status });
+}
+
+/**
+ * SLIDING SESSIONS - why a daily user is never signed out.
+ *
+ * A session cookie is stamped with an expiry date when it is created: 100 days
+ * for parents, teachers and bus staff, 30 for admins. Left alone, that date is
+ * fixed, so a parent who opened the app every single morning would still be
+ * thrown out on day 100 for no reason. This function pushes the date forward
+ * while they are still using the app.
+ *
+ * WHEN: only once the current session is more than REFRESH_AFTER_DAYS (10)
+ * days old. Minting a brand new token on all 423 people's every click would
+ * burn CPU for nothing.
+ *
+ * THE EPOCH, AND WHY THIS DOES NOT BREAK THE KILL SWITCH.
+ * "Sign out everywhere" works by bumping profiles.session_epoch in the
+ * database; every cookie carrying the old number instantly counts as dead.
+ * This code runs on the Edge runtime and cannot read the database, so it does
+ * not look the number up - it COPIES the number out of the old cookie into the
+ * new one. A renewed cookie therefore carries exactly the same epoch it always
+ * had. If that epoch is stale, lib/guard.js rejects it on the very next page
+ * or API call, just as before. Renewal extends the clock. It can never revive
+ * a session that was killed.
+ *
+ * FAILURE IS SILENT ON PURPOSE. If signing the new token throws, we keep the
+ * old cookie and carry on. The old one is still perfectly valid and we will
+ * simply try again on their next page load. A renewal problem must never sign
+ * anybody out, and must never turn a working page into an error.
+ *
+ * @param {NextResponse} response - the response we are about to return
+ * @param {object} session - the verified session read from the old cookie
+ */
+async function slideSession(response, session) {
+  if (!shouldRefreshSession(session)) return;
+
+  try {
+    const token = await createSessionToken({
+      profileId: session.profileId,
+      role: session.role,
+      branchId: session.branchId,
+      epoch: session.epoch,
+    });
+
+    response.cookies.set(
+      COOKIE_NAME,
+      token,
+      sessionCookieOptions(session.role)
+    );
+  } catch (err) {
+    console.warn("[proxy] session renewal skipped:", err.message);
+  }
 }
 
 export async function proxy(request) {
@@ -108,7 +170,13 @@ export async function proxy(request) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return NextResponse.next();
+  // ---------- sliding renewal ----------
+  // Every check above has passed: this person is signed in and allowed to be
+  // here. Renewal happens LAST, and only on success, so a rejected request
+  // never has its session extended as a side effect.
+  const response = NextResponse.next();
+  await slideSession(response, session);
+  return response;
 }
 
 // Which requests the proxy runs on. Static files, images and the Next.js

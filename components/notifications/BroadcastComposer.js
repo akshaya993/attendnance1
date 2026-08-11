@@ -14,7 +14,7 @@
 // the bell row - it IS the bell row, fed a fake unsaved notification. What you
 // see while typing is guaranteed to be what recipients actually get.
 //
-// NEVER hardcode a hex value here (context/ui-context.md rule 1).
+// NEVER hardcode a hex value here (rule 1 of the UI context doc).
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -315,8 +315,8 @@ export default function BroadcastComposer({ role }) {
 
 				{priority === "urgent" && (
 					<p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-[13px] text-danger">
-						Urgent will buzz every recipient&apos;s phone once push notifications
-						are switched on. Use it only for genuine emergencies.
+						Urgent buzzes the phone of every recipient who has turned alerts on,
+						even when the app is closed. Use it only for genuine emergencies.
 					</p>
 				)}
 			</div>

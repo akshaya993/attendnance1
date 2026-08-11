@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { findAuthProfileById, setPassword } from "@/lib/repos/authRepo";
+import { deleteDeviceTokensForProfile } from "@/lib/repos/deviceTokenRepo";
 import {
   COOKIE_NAME,
   RESET_COOKIE,
@@ -78,7 +79,32 @@ export async function POST(request) {
     const passwordHash = await bcrypt.hash(password, 10);
     await setPassword(profile.id, passwordHash);
 
-    // 5. Burn the reset cookie so it cannot set a second password, and clear
+    // 5. THE SIGN-OUT RULE: no login, no notifications.
+    //
+    //    A reset is the strongest version of this. The person forgot their
+    //    password, possibly because somebody else took the account, and step 4
+    //    just signed out every device in existence. Every push subscription on
+    //    the account goes with them.
+    //
+    //    UNLIKE A PASSWORD CHANGE, NOTHING RE-SUBSCRIBES AUTOMATICALLY HERE.
+    //    The browser is sent to /login, so no signed-in page mounts PushSetup.
+    //    Their device registers again on their next successful sign-in, which
+    //    is exactly the behaviour we want: silence until somebody proves who
+    //    they are.
+    //
+    //    Swallowed for the same reason as in change-password: the new password
+    //    is already saved, and a push problem must never turn a completed reset
+    //    into an error the user would retry.
+    try {
+      await deleteDeviceTokensForProfile(profile.id);
+    } catch (err) {
+      console.error(
+        "[auth/reset-password] could not release push subscriptions",
+        err
+      );
+    }
+
+    // 6. Burn the reset cookie so it cannot set a second password, and clear
     //    any session cookie on this device - the epoch bump already killed it.
     const response = NextResponse.json({
       ok: true,

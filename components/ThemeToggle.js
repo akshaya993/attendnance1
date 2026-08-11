@@ -1,7 +1,7 @@
 "use client";
 
 // components/ThemeToggle.js
-// Light/dark switch. Created ONCE in Feature 13 (see context/ui-context.md).
+// Light/dark switch. Created ONCE in Feature 13 (see the UI context doc).
 // Writes localStorage('theme') and flips data-theme on <html>.
 // The pre-paint script in app/layout.js reads that value on the next load.
 
@@ -33,7 +33,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-      className="flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-raised text-muted transition-colors duration-150 hover:text-body"
+      className="icon-button"
     >
       {theme === "dark" ? (
         // moon

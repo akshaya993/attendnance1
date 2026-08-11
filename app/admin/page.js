@@ -15,7 +15,7 @@
 //   14 Promotions    - year-end run controls
 //
 // The full editorial layout - sidebar on desktop, bottom tabs on mobile, per
-// ui-context.md - is NOT built yet. It is scheduled as its own feature after
+// the UI context doc - is NOT built yet. It is scheduled as its own feature after
 // Feature 09. Until then this is a plain centred column.
 
 import { requireActiveSession } from "@/lib/guard";

@@ -1,19 +1,28 @@
 // app/api/notifications/subscribe/route.js
 // -----------------------------------------------------------------------------
-// POST /api/notifications/subscribe
+// POST   /api/notifications/subscribe  - remember this browser
+// DELETE /api/notifications/subscribe  - forget this browser (called on sign out)
 //
-// The browser calls this once it has permission to show notifications, handing
+// The browser calls POST once it has permission to show notifications, handing
 // over the subscription its push service issued. Every role may subscribe -
 // parents, teachers, admins and bus staff all need to be reachable.
 //
 // THE PROFILE ID COMES FROM THE SIGNED COOKIE, NEVER FROM THE BODY. Otherwise
 // anybody could register their own phone against the principal's account and
 // receive every message the school sends.
+//
+// The one thing the body IS trusted for is the endpoint on DELETE, and that is
+// safe because the SQL pins it to `profile_id = <cookie>`. The worst a forged
+// endpoint can do is delete a row you already own.
 // -----------------------------------------------------------------------------
 
 import { requireActiveApiSession } from "@/lib/guard";
 import { pushStatus } from "@/lib/push";
-import { saveDeviceToken } from "@/lib/repos/deviceTokenRepo";
+import {
+	deleteDeviceTokenByEndpoint,
+	releaseEndpointFromOtherProfiles,
+	saveDeviceToken,
+} from "@/lib/repos/deviceTokenRepo";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +59,20 @@ function normalizeSubscription(raw) {
 	return { endpoint, keys: { p256dh, auth } };
 }
 
+/**
+ * Shared error handling for both methods.
+ */
+function errorResponse(err, method) {
+	if (err.name === "AuthError") {
+		return Response.json({ ok: false, error: err.message }, { status: err.status });
+	}
+	console.error(`[api/notifications/subscribe] ${method} failed:`, err);
+	return Response.json(
+		{ ok: false, error: "Something went wrong. Please try again." },
+		{ status: 500 }
+	);
+}
+
 export async function POST(request) {
 	try {
 		const { session: user } = await requireActiveApiSession(request);
@@ -76,6 +99,33 @@ export async function POST(request) {
 		}
 
 		const created = await saveDeviceToken(user.profileId, subscription);
+
+		// ---------------------------------------------------------------------
+		// ONE BROWSER, ONE OWNER.
+		//
+		// Ours is saved first, then anybody else's claim on the same endpoint is
+		// released. That order matters: if the release fails we have still
+		// stored the row we came here to store, and the situation is no worse
+		// than it was a second ago.
+		//
+		// Wrapped in its own try/catch for the same reason the status check
+		// below is - a browser that registered correctly deserves a 200. This
+		// is housekeeping, not the caller's business.
+		// ---------------------------------------------------------------------
+		let released = 0;
+		try {
+			released = await releaseEndpointFromOtherProfiles(
+				user.profileId,
+				subscription.endpoint
+			);
+			if (released > 0) {
+				console.warn(
+					`[api/notifications/subscribe] endpoint reassigned to profile ${user.profileId}, released ${released} stale row(s)`
+				);
+			}
+		} catch (err) {
+			console.error("[api/notifications/subscribe] release failed:", err);
+		}
 
 		// ---------------------------------------------------------------------
 		// READING THE PUSH CONFIG MUST NOT BE ABLE TO FAIL THE SAVE.
@@ -110,21 +160,58 @@ export async function POST(request) {
 			data: {
 				saved: true,
 				created,
+				released,
 				pushReady: push.ready,
 				pushReason: push.reason,
 			},
 		});
 	} catch (err) {
-		if (err.name === "AuthError") {
+		return errorResponse(err, "POST");
+	}
+}
+
+/**
+ * Called by components/auth/LogoutButton.js immediately BEFORE it clears the
+ * session cookie, because this needs a valid session to know who you are.
+ *
+ * WHY SIGN-OUT HAS TO DO THIS AT ALL: notification permission is stored per
+ * SITE, not per login, and a browser holds exactly one subscription for the
+ * whole site. Without this, the next person to sign in on the same phone
+ * inherits the previous person's push address and starts receiving messages
+ * meant for them.
+ *
+ * Returns 200 with removed: 0 when there was nothing to remove. That is a
+ * completely normal outcome - most people never turned notifications on - and
+ * must not look like a failure to the caller.
+ */
+export async function DELETE(request) {
+	try {
+		const { session: user } = await requireActiveApiSession(request);
+
+		let payload;
+		try {
+			payload = await request.json();
+		} catch {
 			return Response.json(
-				{ ok: false, error: err.message },
-				{ status: err.status }
+				{ ok: false, error: "Invalid request body" },
+				{ status: 400 }
 			);
 		}
-		console.error("[api/notifications/subscribe] POST failed:", err);
-		return Response.json(
-			{ ok: false, error: "Something went wrong. Please try again." },
-			{ status: 500 }
-		);
+
+		const endpoint =
+			typeof payload?.endpoint === "string" ? payload.endpoint.trim() : "";
+
+		if (!endpoint.startsWith("https://")) {
+			return Response.json(
+				{ ok: false, error: "Invalid push subscription" },
+				{ status: 400 }
+			);
+		}
+
+		const removed = await deleteDeviceTokenByEndpoint(user.profileId, endpoint);
+
+		return Response.json({ ok: true, data: { removed } });
+	} catch (err) {
+		return errorResponse(err, "DELETE");
 	}
 }

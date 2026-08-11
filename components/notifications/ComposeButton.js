@@ -16,9 +16,9 @@
 // bar. proxy.js (ROLE_PREFIXES) is what actually blocks them, and lib/notify.js
 // is what refuses a teacher sending school-wide. This is only tidiness.
 //
-// STYLING: the className is deliberately identical to ThemeToggle and BellMenu
-// so the three header icons line up perfectly. If you ever restyle one, restyle
-// all three.
+// STYLING: uses the shared .icon-button class in app/globals.css - the same
+// 44px square as the bell, the theme switch and the alerts prompt. Restyle the
+// header once, there, and all four follow. Nothing to keep in sync by hand.
 
 import Link from "next/link";
 import { canUseAudience } from "@/lib/notificationConstants";
@@ -43,7 +43,7 @@ export default function ComposeButton({ role }) {
       href={href}
       aria-label="Send a notification"
       title="Send a notification"
-      className="flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-raised text-muted transition-colors duration-150 hover:text-body"
+      className="icon-button"
     >
       <svg
         width="16"

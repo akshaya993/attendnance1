@@ -1,7 +1,7 @@
 // app/api/auth/login/route.js
 // Password login. THE primary way into the app. OTP is only for resets.
 //
-// Order (context/code-standards.md rule 9): validate -> repo -> decide -> respond.
+// Order (see the code standards doc in context/): validate -> repo -> decide -> respond.
 // No SQL here; every query lives in lib/repos/authRepo.js.
 //
 // ANTI-ENUMERATION: an unknown phone and a wrong password produce the same

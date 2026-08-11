@@ -386,7 +386,7 @@ export default function ForgotPasswordPage() {
           {/* ---------- step 4: done ---------- */}
           {step === "done" ? (
             <div>
-              <p className="label-micro ok">PASSWORD CHANGED</p>
+              <p className="label-micro text-ok">PASSWORD CHANGED</p>
               <p className="mt-3 text-sm">
                 You have been signed out everywhere for safety. Sign in with your
                 new password.
