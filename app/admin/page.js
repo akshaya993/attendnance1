@@ -18,6 +18,8 @@
 // the UI context doc - is NOT built yet. It is scheduled as its own feature after
 // Feature 09. Until then this is a plain centred column.
 
+import Link from "next/link";
+
 import { requireActiveSession } from "@/lib/guard";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -45,6 +47,45 @@ export default async function AdminHomePage() {
           Nothing here yet. Each feature adds its section to this page as it is
           built. To send a notification, use the + in the top bar.
         </p>
+      </div>
+
+      {/* Feature 01 - Attendance entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">ATTENDANCE</p>
+        <p className="mt-3 text-sm text-muted">
+          Today&apos;s school-wide attendance, class by class, with corrections.
+        </p>
+        <div className="mt-4">
+          <Link href="/admin/attendance" className="cta">
+            Today&apos;s attendance
+          </Link>
+        </div>
+      </div>
+
+      {/* Feature 04 - Fees entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">FEES</p>
+        <p className="mt-3 text-sm text-muted">
+          Collect payments at the counter, chase dues, print receipts.
+        </p>
+        <div className="mt-4">
+          <Link href="/admin/fees" className="cta">
+            Open fee desk
+          </Link>
+        </div>
+      </div>
+
+      {/* Feature 03 - Complaints entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">COMPLAINTS</p>
+        <p className="mt-3 text-sm text-muted">
+          The parent complaint inbox - read, reply, resolve.
+        </p>
+        <div className="mt-4">
+          <Link href="/admin/complaints" className="cta">
+            Open inbox
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8">

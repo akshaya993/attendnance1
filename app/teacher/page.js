@@ -15,6 +15,8 @@
 // the UI context doc - is NOT built yet. It is scheduled as its own feature after
 // Feature 09.
 
+import Link from "next/link";
+
 import { requireActiveSession } from "@/lib/guard";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -42,6 +44,20 @@ export default async function TeacherHomePage() {
           Nothing here yet. Each feature adds its section to this page as it is
           built. To send a notification, use the + in the top bar.
         </p>
+      </div>
+
+      {/* Feature 01 - Attendance entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">ATTENDANCE</p>
+        <p className="mt-3 text-sm text-muted">
+          Mark today&apos;s attendance - everyone starts Present, one tap marks
+          a student Absent.
+        </p>
+        <div className="mt-4">
+          <Link href="/teacher/attendance" className="cta">
+            Mark attendance
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8">

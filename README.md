@@ -44,13 +44,13 @@ Per-feature docs, in `context/features/<NN-name>/`:
 
 ## Status
 
-Feature 13 (authentication) complete and tested. Next: 09 Notifications.
-
-**Open risk for feature 09:** `must_change_password` is enforced in
-`app/page.js`, not `proxy.js`, because the Edge runtime cannot reach
-PostgreSQL. It therefore guards only `/`. Before adding any new page, extract
-that check into `lib/guard.js` as `requireActiveSession()` and call it as the
-first line of every server page.
+Feature 13 (authentication) complete and tested. Feature 09 (notifications +
+PWA) complete and tested - see its docs in `context/features/09-notifications/`.
+Feature 01 (attendance) complete and tested 2026-08-13 - docs in
+`context/features/01-attendance/`. Feature 04 (fees) complete and tested
+2026-08-13/14 - docs in `context/features/04-fees/`. Feature 03 complaints
+complete and tested 2026-08-14 (feedback deferred, specced) - docs in
+`context/features/03-complaints/`. Next up per the build order: 05 Groups.
 
 ## Conventions that will bite you
 

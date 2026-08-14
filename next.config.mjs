@@ -48,6 +48,12 @@ if (process.env.NODE_ENV === "production") {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // pdfkit reads its built-in font files (.afm) from disk at runtime. Bundling
+  // it breaks those paths (the file lookup lands on a phantom C:\ROOT path and
+  // every PDF 500s). Declaring it external makes the route load the real
+  // package from node_modules, where the data files actually live.
+  serverExternalPackages: ["pdfkit"],
+
   async headers() {
     return [
       {

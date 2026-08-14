@@ -13,8 +13,12 @@ right now, what each file does, why it exists, and which file to import instead 
 writing a new one.
 
 **Last verified:** 2026-08-05 against branch `all-features-in-13-are-done-with-testing`
-(commit `b228514c`) of `akshaya993/school-app-branches`. Every path below was read
-from the repository, not remembered.
+(commit `b228514c`) of `akshaya993/school-app-branches`.
+**Updated 2026-08-13:** features 09 (notifications/PWA) and 01 (attendance) are
+now DONE. Their file-by-file details live in `context/features/09-notifications/`
+and `context/features/01-attendance/`; key additions are folded into the tables
+below, but the section-4 tree still predates them. When the tree and the feature
+folders disagree, the feature folders win.
 
 **How this differs from the other context files**
 
@@ -92,7 +96,9 @@ Project root `C:\projects\school-app`. New PowerShell windows open in
 `C:\Users\<you>` — always `cd C:\projects\school-app` first.**
 
 Adding any new npm package requires asking first. Current runtime dependencies are
-exactly: `bcryptjs`, `jose`, `next`, `nodemailer`, `pg`, `react`, `react-dom`.
+exactly: `bcryptjs`, `jose`, `next`, `nodemailer`, `pdfkit` (added by feature 03
+for receipt PDFs - requires `serverExternalPackages` in next.config.mjs), `pg`,
+`react`, `react-dom`, `web-push` (added by feature 09, from the approved list).
 
 ⚠️ `npm audit` reports **4 high-severity advisories** in transitive dev
 dependencies. **Do not run `npm audit fix --force`** — it would upgrade Next.js
@@ -256,6 +262,43 @@ Most-used exports: `getSession(request)`, `requireRole(user, roles)`,
 `validatePassword(password, { phoneNumber })`, `isPasswordExpired(role, changedAt)`.
 Full list in `13-2-feature-13-reference.md`.
 
+### `lib/guard.js` 🧠 the session gate (created during feature 09)
+`getActiveSession()` (React-cached, for layouts), `requireActiveSession()`
+(first line of every protected server PAGE - redirects on failure, enforces the
+forced-password-change), `requireActiveApiSession(request)` (first line of every
+protected API ROUTE - throws AuthError 401). This is the only place the
+session_epoch kill-switch is checked against the database.
+**Rule: ids and branchId come from `session` (numbers, from the JWT). The
+`profile` row's BIGINT fields arrive from pg as STRINGS - never compare them
+raw.**
+
+### `lib/notify.js`, `lib/push.js`, `lib/notificationConstants.js` 🧠 (feature 09)
+`createNotification()` is the ONLY way any feature sends a notification
+(feature 01 calls it with `source: "attendance"`). `lib/push.js` is the only
+code talking to phone push services. `notificationConstants.js` is the shared
+zero-import vocabulary both browser and server may read. Deep detail:
+`context/features/09-notifications/09-0-decisions.md`.
+
+### `lib/attendance.js` 🧠 (feature 01)
+Feature 01's tiny non-SQL helper: `todayIst()` and `notifyAbsences()`. Server
+only. Pattern to copy if your feature needs the same shape of helper.
+
+### `lib/format.js` 🧠 (feature 04)
+Shared display formatting: `formatMoney()` (₹ Indian grouping, 2 decimals),
+`formatDateIst()` / `formatDateTimeIst()`, `FEE_CATEGORIES`,
+`feeCategoryLabel()`. **Zero imports — client-safe**, like
+`notificationConstants.js`. Money is only formatted here, never calculated.
+
+### `lib/ai.js` 🧠 (feature 03)
+The AI helper: `draftReply(notes, context)` + `aiStatus()`. Talks to ANY
+OpenAI-compatible endpoint via `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`.
+Gracefully "not configured" when env vars are missing; never throws. Server
+only. Feature 07 will reuse it.
+
+### `lib/complaintConstants.js` 🧠 (feature 03)
+Zero-import shared limits/labels for the complaint form and routes
+(SUBJECT_MAX, DESCRIPTION_MAX, REPLY_MAX, statuses).
+
 ### `lib/repos/*.js` 🗄️ THE ONLY PLACE SQL MAY LIVE
 One file per subject area. All queries parameterized (`$1, $2`) — this is the
 project's SQL-injection defence, and it is absolute. Repos also alias snake_case
@@ -266,6 +309,12 @@ database naming.
 - **`authRepo.js`** [13] — every `profiles` and `otp_codes` query: login lookups,
   failed-attempt counting, lockouts, `session_epoch`, password writes, OTP create/
   find/consume, the yearly quota and the 45-second cooldown.
+- **`notificationRepo.js`** [09] — every notification query (bell reads, fan-out
+  write, the Sent outbox).
+- **`deviceTokenRepo.js`** [09] — every push-subscription query (shared with
+  feature 02 later).
+- **`attendanceRepo.js`** [01] — every attendance query: roster, today's class
+  state, submit/modify/override transactions, parent summary, admin dashboard.
 
 Future features add `feeRepo.js`, `marksRepo.js`, `attendanceRepo.js` and so on —
 **new files, never a rewrite of an existing repo.** Need one extra query about
@@ -333,15 +382,16 @@ and it saves a whole HTTP round trip on a slow phone. **All writes go through
 
 | URL | File | Type | Purpose |
 |---|---|---|---|
-| `/` | `app/page.js` | server | Signed-in home. Also where the `session_epoch` check and the forced-password-change gate actually fire. |
+| `/` | `app/page.js` | server | Role redirector: sends each signed-in role to its own home. |
 | `/login` | `app/login/page.js` | server shell + client form | Phone + password. |
 | `/forgot-password` | `app/forgot-password/page.js` | client | Phone → code → new password, all in one route because each step depends on a short-lived cookie from the last. |
 | `/first-login` | `app/first-login/page.js` | client | Forced change for temporary passwords and expired admin passwords. |
-
-**Not built yet:** `/admin`, `/teacher`, `/parent`, `/bus`. `proxy.js` already
-guards those prefixes by role, so the day a page appears there it is protected
-automatically. A signed-in admin visiting `/admin` today passes the gate and then
-gets a Next.js 404 — **expected, not a bug.**
+| `/admin`, `/teacher`, `/parent`, `/bus` | `app/<role>/page.js` | server | Role home pages (added by feature 09). proxy.js gates the prefixes by role. |
+| `/teacher/attendance` | `app/teacher/attendance/page.js` | server | [01] Class grid → marking sheet (`?classId=`). |
+| `/parent/attendance` | `app/parent/attendance/page.js` | server | [01] Child % + history (+ stand-in child picker). |
+| `/admin/attendance` | `app/admin/attendance/page.js` | server | [01] School dashboard, class cards. |
+| `/admin/attendance/class/[classId]` | `app/admin/attendance/class/[classId]/page.js` | server | [01] Absent list + admin edit. |
+| `/admin/broadcast`, `/teacher/broadcast` | `app/<role>/broadcast/page.js` | server | [09] Notification composer + Sent outbox. |
 
 ### API routes that exist
 
@@ -359,9 +409,27 @@ value, never an HTML error page.
 | `POST /api/auth/otp/verify` | Yes | Check a code, issue the reset ticket |
 | `POST /api/auth/reset-password` | Yes (ticket-guarded) | Finish a forgotten-password reset |
 | `POST /api/auth/change-password` | **No** | Change while signed in |
-
-`/api/branches` and `/api/classes` used to be open and now require a session —
-a side effect of default-deny that Feature 01 needs to know about.
+| `GET /api/notifications` | **No** | My bell list / `?count_only=true` badge poll |
+| `PUT /api/notifications/[id]/read` | **No** | Mark one read (idempotent) |
+| `PUT /api/notifications/read-all` | **No** | Mark all read |
+| `GET+POST /api/notifications/broadcast` | **No** (admin/teacher) | Audience preview + send |
+| `GET /api/notifications/sent` | **No** (admin/teacher) | The outbox |
+| `POST+DELETE /api/notifications/subscribe` | **No** | Push subscription save/release |
+| `GET /api/attendance/students` | **No** (teacher/admin) | [01] Roster + today's submission state |
+| `POST /api/attendance/submit` | **No** (teacher) | [01] First submission today (409 on repeat) |
+| `POST /api/attendance/modify` | **No** (teacher) | [01] The one allowed edit (403 after) |
+| `GET /api/attendance/parent-summary` | **No** (parent, own child only) | [01] Child % + history |
+| `GET+POST /api/attendance/admin-summary` | **No** (admin) | [01] Dashboard + override |
+| `GET /api/fees/summary` | **No** (admin) | [04] Branch money pulse, all 4 categories |
+| `GET /api/fees/due` | **No** (admin) | [04] Class dues / unpaid students drill-down |
+| `GET /api/fees/search` | **No** (admin) | [04] Kiosk search by parent phone |
+| `POST /api/fees/pay` | **No** (admin) | [04] THE money transaction + parent alert |
+| `GET /api/fees/today` | **No** (admin) | [04] Today's collections (IST calendar day) |
+| `GET /api/fees/parent-summary` | **No** (parent, own child only) | [04] Child dues + receipts |
+| `GET /api/fees/receipt/[receiptNumber]` | **No** (admin of branch / owning parent) | [03 retrofit] Real PDF download (pdfkit) |
+| `GET+POST /api/complaints` | **No** (parent files; admin reads queue) | [03] Complaint create + lists |
+| `GET+PATCH /api/complaints/[id]` | **No** (admin) | [03] Ticket detail + read/flag/reply/resolve |
+| `POST /api/complaints/copilot` | **No** (admin) | [03] AI reply draft (503 when unconfigured) |
 
 **Standard route shape** — copy this skeleton for every new endpoint:
 export async function POST(request) {
@@ -404,9 +472,21 @@ No SQL, no secrets, no direct database access — ever.
 |---|---|
 | `auth/PasswordField.js` | **Every** password input, anywhere in the app. Already used on three screens. |
 | `auth/OtpInput.js` | **Any** short numeric code entry. Handles auto-advance, backspace and pasting all six digits at once. |
-| `auth/LogoutButton.js` | Every sign-out control, in every future layout. |
+| `auth/LogoutButton.js` | Every sign-out control, in every future layout. Also releases the push subscription (feature 09). |
 | `auth/LoginForm.js` | Specific to `/login`. Read it as the template for a form that POSTs and then navigates. |
 | `ThemeToggle.js` | Drop it into any future header. |
+| `BackLink.js` | [09] The back arrow at the top of every sub-page. Never `router.back()`. |
+| `notifications/*` | [09] BellMenu + ComposeButton + PushSetup are mounted once in `app/layout.js`. BroadcastComposer etc. power the broadcast pages. |
+| `attendance/AttendanceStatCard.js` | [01] Any big %-with-progress-bar stat card. |
+| `attendance/StudentAttendanceList.js` | [01] Tap-to-toggle marking sheet (teacher + admin modes). |
+| `attendance/ClassPicker.js` | [01] Grid of class cards (plain links). |
+| `fees/StatCard.js` | [04] Clickable money stat card with soft-press. |
+| `fees/DueTable.js` | [04] THE reusable table (columns/rows/rowHref), no client JS. |
+| `fees/PayKiosk.js` | [04] The cash-counter flow (client). |
+| `fees/ReceiptCard.js` | [04] Printable receipt (admin + parent share it); has the PDF download link. |
+| `fees/CopyNamesButton.js` | [04] Clipboard copy of unpaid-student names. |
+| `complaints/ComplaintForm.js` | [03] Parent complaint form (client). |
+| `complaints/TicketQueue.js` | [03] Admin split inbox: queue, flags, reply, AI draft, resolve (client). |
 
 Future features add `components/fees/`, `components/marks/` and so on — folder per
 area, PascalCase filenames.
@@ -445,11 +525,20 @@ The anti-duplication table. "Owner" is the feature that created it; everyone els
 |---|---|---|---|
 | `lib/db.js` | 01-P0 | everything | Frozen. Import `query` / `withTransaction`. |
 | `lib/auth.js` | 01-P0, extended by 13 | everything protected | Extend by appending. Never import `pg` into it. |
+| `lib/guard.js` | 09 | every page + API route | First line of each. Take ids from `session`, not `profile`. |
 | `lib/audit.js` | **13** (planned for 14) | 01, 04, 07, 08, 11, 12, 13, 14 | Import. Never recreate. Never invent an action. |
 | `lib/mailer.js` | 13 | 13, 09, anything emailing | Import `sendMail`. |
 | `lib/sms.js` | 13 | 13, 09 | Import `sendSms`. |
+| `lib/notify.js` | 09 | every feature that notifies | `createNotification()` is the only write path. |
+| `lib/push.js` | 09 | 09, 02 | Never import `web-push` directly elsewhere. |
+| `lib/attendance.js` | 01 | 01 only | Feature-scoped helper (notifyAbsences, todayIst). |
 | `lib/repos/coreRepo.js` | 01 | 01+ | Add functions; don't fork. |
 | `lib/repos/authRepo.js` | 13 | 13, any feature reading profiles | Add functions; don't fork. |
+| `lib/repos/notificationRepo.js` / `deviceTokenRepo.js` | 09 | 09, 02 | Add functions; don't fork. |
+| `lib/repos/attendanceRepo.js` | 01 | 01, 03, 04 (reuses `getClassInfo`, `getOwnedStudent`, `getChildrenOfParent`, `getParentInfoForStudents`) | All attendance SQL lives here. |
+| `lib/repos/feeRepo.js` | 04 | 04 | All fee/receipt SQL + the payment transaction. |
+| `lib/repos/complaintRepo.js` | 03 | 03 | All complaint SQL + the lifecycle guards. |
+| `lib/repos/authRepo.js` | 13 | 13, any feature reading profiles (03 added `listAdminIdsByBranch`) | Add functions; don't fork. |
 | `proxy.js` | 13 | whole app | **Add rules to it. Never create a second gate file.** |
 | `app/layout.js` | 13 | whole app | Shared shell. Coordinate before changing. |
 | `app/globals.css` | 13 | whole app | Add tokens/classes; never delete existing ones. |
@@ -644,9 +733,11 @@ Three rules added by experience during Feature 13:
 |---|---|---|
 | 01-P0 | Skeleton: `lib/db.js`, auth stub, `coreRepo.js`, `/api/health`, `/api/branches`, `/api/classes` | **DONE** |
 | **13** | **Auth, sessions, OTP, `proxy.js`, real `lib/auth.js`** | **DONE — fully tested 2026-08-05** |
-| 09 | Notifications (`lib/notify.js`, push) | Next up |
-| 01 (rest) | Core: students, classes, profiles | Planned |
-04 Fees (lib/audit.js ALREADY EXISTS from feature 13 - import it, do NOT
+| **09** | **Notifications, `lib/notify.js`, push, PWA, `lib/guard.js`, role home pages** | **DONE — tested 2026-08-11 (docs: `context/features/09-notifications/`)** |
+| **01 (rest)** | **Attendance: teacher marking, parent view, admin dashboard + override, absence alerts** | **DONE — tested 2026-08-13 (docs: `context/features/01-attendance/`)** |
+| **04** | **Fees: pay kiosk, dues drill-down, receipts, today's collections, parent view** | **DONE — tested 2026-08-13/14 (docs: `context/features/04-fees/`)** |
+| **03** | **Complaints: parent submit + admin inbox + AI copilot shell. Feedback deferred (specced). pdfkit added; fee receipts now also download as real PDFs** | **DONE — tested 2026-08-14 (docs: `context/features/03-complaints/`)** |
+| 04 Fees (lib/audit.js ALREADY EXISTS from feature 13 - import it, do NOT
 recreate it, and SKIP 14-Prompt1's "create lib/audit.js" task) -> 05 Groups -> 07 Marks ->
 | 05, 07, 10, 02, 03, 06, 08, 12, 14, 11 | See `00-PROJECT-STRUCTURE.md` for the per-feature file manifests | Planned |
 

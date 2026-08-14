@@ -18,6 +18,8 @@
 // the UI context doc - is NOT built yet. It is scheduled as its own feature after
 // Feature 09.
 
+import Link from "next/link";
+
 import { requireActiveSession } from "@/lib/guard";
 import LogoutButton from "@/components/auth/LogoutButton";
 
@@ -45,6 +47,45 @@ export default async function ParentHomePage() {
           Nothing here yet. Each feature adds its section to this page as it is
           built.
         </p>
+      </div>
+
+      {/* Feature 01 - Attendance entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">ATTENDANCE</p>
+        <p className="mt-3 text-sm text-muted">
+          Your child&apos;s attendance percentage and day-by-day history.
+        </p>
+        <div className="mt-4">
+          <Link href="/parent/attendance" className="cta">
+            View attendance
+          </Link>
+        </div>
+      </div>
+
+      {/* Feature 04 - Fees entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">FEES</p>
+        <p className="mt-3 text-sm text-muted">
+          Outstanding balance, category-wise dues, and payment receipts.
+        </p>
+        <div className="mt-4">
+          <Link href="/parent/fees" className="cta">
+            View fees
+          </Link>
+        </div>
+      </div>
+
+      {/* Feature 03 - Complaints entry point */}
+      <div className="card mt-4 p-6">
+        <p className="label-micro text-muted">COMPLAINTS</p>
+        <p className="mt-3 text-sm text-muted">
+          Raise a concern with the school office and track its answer.
+        </p>
+        <div className="mt-4">
+          <Link href="/parent/complaints" className="cta">
+            Complaints
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8">
