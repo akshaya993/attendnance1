@@ -1,4 +1,4 @@
-# PROGRESS TRACKER
+﻿# PROGRESS TRACKER
 ## School App - Live Build Status
 
 > STATUS FILE. UPDATE THIS AFTER EVERY COMPLETED PROMPT.
@@ -38,8 +38,8 @@ buses 9000000021/22. All fake - replace before production.
 | 13 | Auth, OTP, proxy.js, real lib/auth.js | DONE (tested 2026-08-05) | Tasks 0-9C all tested. Login+lockout+audit, 100/30-day sliding sessions, session_epoch kill switch, proxy.js role gates, email OTP via nodemailer/Gmail, reset + forced change, password policy, 45s OTP cooldown.Docs: context/features/13-auth/ (13-0-decisions, 13-1-otp-and-auth-spec, 13-2-feature-13-reference) + context/00-MASTER-REFERENCE.md |
 | 14-P1 | lib/audit.js ONLY (needed by 04) | DONE - built during feature 13 | auth needs it for auth.admin_login / auth.lockout. Features 01/04/07/08/11/12/14 must IMPORT it, never recreate. Feature 14 must SKIP its Prompt 1 |
 | 09 | Notifications + lib/notify.js + PWA files | DONE (tested 2026-08-11) | Tracker row was stale; feature 09 was completed and tested - see context/features/09-notifications/09-0-decisions.md for evidence. lib/guard.js extracted as planned (open risk below is RESOLVED) |
-| 01 | Attendance (rest) | DONE (tested 2026-08-13) | Role-first URLs (/teacher|/parent|/admin/attendance). Owner's working-day rule: a class+date submission row IS the working-day mark; school_calendar NOT used; Sunday/holiday submissions count. Absent-only toggle, 1 teacher edit, unlimited admin override (audited), parents alerted (bell+push, priority important). Staff tab deferred - see context/features/01-attendance/. Reuses guard/audit/notify. Test residue in dev DB: 2026-08-13 submissions for classes 49+50 |
-| 04 | Fees | DONE (tested 2026-08-13/14) | Role-first URLs (/admin/fees, /parent/fees). Money invariants live: FOR UPDATE lock, SQL-side overpay refusal, receipt+balance+audit in ONE transaction. All 4 categories drillable. Parent payment alerts (bell+push, important). Receipts are print-friendly pages (pdfkit path documented in context/features/04-fees/, not installed). Installments deferred to feature 14. Test residue: receipts #101015/#101016 on fee 897 |
+| 01 | Attendance (rest) | DONE (tested 2026-08-13) | Role-first URLs (/teacher|/parent|/attendance/admin). Owner's working-day rule: a class+date submission row IS the working-day mark; school_calendar NOT used; Sunday/holiday submissions count. Absent-only toggle, 1 teacher edit, unlimited admin override (audited), parents alerted (bell+push, priority important). Staff tab deferred - see context/features/01-attendance/. Reuses guard/audit/notify. Test residue in dev DB: 2026-08-13 submissions for classes 49+50 |
+| 04 | Fees | DONE (tested 2026-08-13/14) | Role-first URLs (/fees/admin, /fees/parent). Money invariants live: FOR UPDATE lock, SQL-side overpay refusal, receipt+balance+audit in ONE transaction. All 4 categories drillable. Parent payment alerts (bell+push, important). Receipts are print-friendly pages (pdfkit path documented in context/features/04-fees/, not installed). Installments deferred to feature 14. Test residue: receipts #101015/#101016 on fee 897 |
 | 05 | Groups/chat | not started | |
 | 07 | Marks | not started | |
 | 10 | Timetable | not started | |
@@ -65,6 +65,22 @@ never here.
 All feature-13 decisions and reasoning:
 context/features/13-auth/13-0-decisions.md section 13.
 Do not duplicate them here.
+
+**2026-08-14 — STRUCTURE-ONLY REFACTOR (approved by owner):** features 01/03/04
+pages moved from role-first to FEATURE-FIRST URLs (`app/<feature>/<role>/`),
+matching the leaves/marks reference repo. 14 page files moved via `git mv`
+(history preserved). APIs (/api/<feature>/*), components, lib files, context
+docs, and the DB did NOT move. proxy.js gates both URL generations (role home
+pages + 09 broadcast stay role-first). Old URLs 404 by design (only affects
+pre-launch test notifications). All feature tests re-run and pass post-move.
+Rule going forward: new feature pages go feature-first.
+
+**Pre-existing lint note (not from this session's work):** full-repo
+`npx eslint app components lib` flags `react-hooks/set-state-in-effect` in
+three older files (app/forgot-password/page.js, components/ThemeToggle.js,
+components/notifications/BellMenu.js - features 13/09). They predate this
+session and were left untouched per the no-out-of-scope-refactors rule. All
+session-touched files lint clean. Fix them deliberately, separately, if wanted.
 
 **RESOLVED:** the `must_change_password` / session_epoch open risk was fixed by
 feature 09 - `lib/guard.js` now owns `requireActiveSession()` /

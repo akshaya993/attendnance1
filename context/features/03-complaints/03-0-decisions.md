@@ -1,7 +1,13 @@
-# Feature 03 — Complaints: Locked Decisions
+﻿# Feature 03 â€” Complaints: Locked Decisions
 
-Status: **COMPLAINTS DONE — built and tested 2026-08-14.**
-**FEEDBACK: deliberately NOT built** (owner's call) — a complete build-ready
+> **URL RESTRUCTURE NOTE (2026-08-14):** same-day the pages moved to
+> FEATURE-FIRST URLs: `/complaints/parent` â†’ `/complaints/parent` and
+> `/complaints/admin` â†’ `/complaints/admin` (the "role-first" line in section 5
+> is superseded). Notification linkUrls were updated to match; logic and APIs
+> are identical. All tests re-run and pass on the new URLs.
+
+Status: **COMPLAINTS DONE â€” built and tested 2026-08-14.**
+**FEEDBACK: deliberately NOT built** (owner's call) â€” a complete build-ready
 spec lives in `03-2-feedback-future-spec.md` (same folder). Do not start it
 without reading that file.
 
@@ -16,10 +22,10 @@ The master file covers complaints AND feedback forms. The owner decided:
 **build complaints only, now.** Feedback is fully specified but deferred.
 
 Also in scope: the owner ordered **pdfkit installed** and the **fee-receipt
-PDF retrofit** (`GET /api/fees/receipt/[receiptNumber]`) — the exact upgrade
+PDF retrofit** (`GET /api/fees/receipt/[receiptNumber]`) â€” the exact upgrade
 path that feature 04's docs had pre-written for it. Done and tested.
 
-## 2. The complaint lifecycle (owner's rules — these OVERRIDE the prompt file)
+## 2. The complaint lifecycle (owner's rules â€” these OVERRIDE the prompt file)
 
 ```
 parent submits        -> status 'unread'  (admins alerted, bell + buzz)
@@ -43,8 +49,8 @@ resolved              -> FINAL. No reopen in v1.
 
 | Event | Who | Level | Tapping it opens |
 |---|---|---|---|
-| New complaint | EVERY admin of the branch | `important` (bell + phone buzz) | `/admin/complaints` |
-| Admin replies | The parent who complained | `important` (bell + buzz) | `/parent/complaints` |
+| New complaint | EVERY admin of the branch | `important` (bell + phone buzz) | `/complaints/admin` |
+| Admin replies | The parent who complained | `important` (bell + buzz) | `/complaints/parent` |
 
 The bell row and the push notification both follow `linkUrl` - that behaviour
 was built in feature 09 and needed no new code. Source is `'complaints'`
@@ -85,7 +91,7 @@ Enforced server-side on every route (`requireActiveApiSession` +
   of failing. The admin sets `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` whenever
   they want it live (Ollama at `http://localhost:11434/v1` costs nothing).
   The copilot NEVER sends - it fills the reply box; a human presses Send.
-- **Role-first URLs** (`/parent/complaints`, `/admin/complaints`), per the
+- **Role-first URLs** (`/complaints/parent`, `/complaints/admin`), per the
   convention locked in feature 01. proxy.js needed no change.
 - **No schema changes. No new migrations.** The four complaints/feedback
   tables already existed.
@@ -99,8 +105,8 @@ Enforced server-side on every route (`requireActiveApiSession` +
   plain 404 (receipt existence is never leaked).
 - `components/fees/ReceiptCard.js` gained a "Download as PDF file" link next
   to Print. The print pages stay exactly as they were.
-- **FONT GOTCHA:** pdfkit's built-in Helvetica cannot draw ₹. PDFs print
-  "Rs 25,500.00"; screens keep "₹25,500.00". Embedding a TTF with the rupee
+- **FONT GOTCHA:** pdfkit's built-in Helvetica cannot draw â‚¹. PDFs print
+  "Rs 25,500.00"; screens keep "â‚¹25,500.00". Embedding a TTF with the rupee
   glyph is the (optional) future fix.
 - **BUILD GOTCHA HIT AND FIXED:** pdfkit reads its `.afm` font files from disk.
   Bundled by default, the path resolves to a phantom `C:\ROOT\...` and every
@@ -109,7 +115,7 @@ Enforced server-side on every route (`requireActiveApiSession` +
 
 ## 7. Bugs found during this build (and the lesson)
 
-1. **pdfkit font ENOENT** → fixed with `serverExternalPackages` (above).
+1. **pdfkit font ENOENT** â†’ fixed with `serverExternalPackages` (above).
 2. **React lint `set-state-in-effect`** in TicketQueue: calling the loading
    function synchronously inside `useEffect` is forbidden. Fixed by deferring
    with a zero-timeout. If this rule fires elsewhere, do the same.
@@ -124,8 +130,8 @@ Enforced server-side on every route (`requireActiveApiSession` +
 Logins: parent `9810000002`, admin `9000000001`, teacher `9000000101`
 (`Pass@123`).
 
-- Parent files complaint → `201`-class success, `id=4`; **admin bell 11 -> 12**,
-  newest row `[important] New complaint received` linking `/admin/complaints`.
+- Parent files complaint â†’ `201`-class success, `id=4`; **admin bell 11 -> 12**,
+  newest row `[important] New complaint received` linking `/complaints/admin`.
 - Admin queue: the new ticket on top, unread, bold; seeded unread ticket next;
   read section below - the ordering works.
 - GET ticket detail: parent name, phone, and the linked child all present.
@@ -133,13 +139,13 @@ Logins: parent `9810000002`, admin `9000000001`, teacher `9000000101`
 - `resolve` with no reply -> **400** "Send a reply before resolving".
 - `reply` -> 200, **status stays `read`** (the owner's rule), `notified:1`;
   parent's bell got `[important] The school replied to your complaint` ->
-  `/parent/complaints`.
+  `/complaints/parent`.
 - `resolve` after reply -> 200 `resolved`. Second resolve -> **409**.
 - Parent's list: ticket shows Resolved chip + the reply + "School
   Administrator" as replier.
 - Copilot unconfigured -> **503** with the exact missing env vars named.
-- Guards: parent PATCH -> 403 · teacher GET -> 403 · anonymous -> 401 ·
-  unknown id -> 404 · empty subject -> 400.
+- Guards: parent PATCH -> 403 Â· teacher GET -> 403 Â· anonymous -> 401 Â·
+  unknown id -> 404 Â· empty subject -> 400.
 - Fees PDF: admin 200 `%PDF-` bytes, `receipt-101015.pdf`; owning parent 200;
   another parent 404; anonymous 401.
 - Regressions: attendance submit/state, fees summary/today, notifications,

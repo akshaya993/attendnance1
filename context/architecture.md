@@ -42,8 +42,8 @@ school-app/
 |   |-- migrations/         # future numbered ALTER files (002_x.sql ...)
 |-- app/
 |   |-- login/ forgot-password/ first-login/          # EXIST (feature 13)
-|   |-- admin/ teacher/ parent/ bus/                  # NOT YET - proxy.js already
-|   |                                                  # guards these prefixes by role
+|   |-- admin/ teacher/ parent/ bus/                  # role HOME pages + 09 broadcast
+|   |-- <feature>/<role>/                             # FEATURE-FIRST PAGES (rule below)
 |   |-- api/    # auth/ attendance/ fees/ marks/ bus/ groups/ leaves/ complaints/
 |               # feedback/ admissions/ notifications/ timetable/ profiles/ posts/
 |               # promotions/ health/
@@ -60,6 +60,23 @@ school-app/
 |-- workers/                # pm2-run loops: busAlarmWorker.js, feeReminders.js
 |-- public/                 # manifest.json, icons/, uploads/ (WebP on disk)
 ```
+
+## PAGE URL ORGANIZATION (locked 2026-08-14 — feature-first)
+
+Feature pages live at **`app/<feature>/<role>/`** — e.g. `app/attendance/teacher`,
+`app/fees/admin`, `app/complaints/parent`. This matches the reference
+architecture used by the leaves/marks features. The four role HOME pages
+(`/admin`, `/teacher`, `/parent`, `/bus`) and feature 09's broadcast pages
+(`/admin/broadcast`, `/teacher/broadcast`) stay role-first — those are the two
+deliberate exceptions.
+
+- `proxy.js` ROLE_PREFIXES gates BOTH shapes; add a row when a new
+  feature-first area appears.
+- API routes are always `app/api/<feature>/...` (no role segment) and are
+  never moved by page reorganizations.
+- Components stay flat per feature (`components/<feature>/...`); feature libs
+  stay flat (`lib/<feature>.js`, `lib/repos/<feature>Repo.js`); docs stay in
+  `context/features/<NN-name>/`.
 
 ## Shared-file ownership (create once, import everywhere)
 

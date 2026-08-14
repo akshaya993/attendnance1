@@ -20,6 +20,12 @@ and `context/features/01-attendance/`; key additions are folded into the tables
 below, but the section-4 tree still predates them. When the tree and the feature
 folders disagree, the feature folders win.
 
+**Updated 2026-08-14:** features 04 (fees) and 03 (complaints) DONE, and the
+three session features were RESTRUCTURED to feature-first page URLs
+(`app/<feature>/<role>/`, matching the leaves/marks reference repo). Pages moved;
+APIs (`/api/<feature>/...`), components, lib files, context folders, and the
+database did not move. proxy.js gates both URL generations.
+
 **How this differs from the other context files**
 
 | File | Answers |
@@ -387,11 +393,21 @@ and it saves a whole HTTP round trip on a slow phone. **All writes go through
 | `/forgot-password` | `app/forgot-password/page.js` | client | Phone → code → new password, all in one route because each step depends on a short-lived cookie from the last. |
 | `/first-login` | `app/first-login/page.js` | client | Forced change for temporary passwords and expired admin passwords. |
 | `/admin`, `/teacher`, `/parent`, `/bus` | `app/<role>/page.js` | server | Role home pages (added by feature 09). proxy.js gates the prefixes by role. |
-| `/teacher/attendance` | `app/teacher/attendance/page.js` | server | [01] Class grid → marking sheet (`?classId=`). |
-| `/parent/attendance` | `app/parent/attendance/page.js` | server | [01] Child % + history (+ stand-in child picker). |
-| `/admin/attendance` | `app/admin/attendance/page.js` | server | [01] School dashboard, class cards. |
-| `/admin/attendance/class/[classId]` | `app/admin/attendance/class/[classId]/page.js` | server | [01] Absent list + admin edit. |
-| `/admin/broadcast`, `/teacher/broadcast` | `app/<role>/broadcast/page.js` | server | [09] Notification composer + Sent outbox. |
+| `/attendance/teacher` | `app/attendance/teacher/page.js` | server | [01] Class grid → marking sheet (`?classId=`). |
+| `/attendance/parent` | `app/attendance/parent/page.js` | server | [01] Child % + history (+ stand-in child picker). |
+| `/attendance/admin` | `app/attendance/admin/page.js` | server | [01] School dashboard, class cards. |
+| `/attendance/admin/class/[classId]` | `app/attendance/admin/class/[classId]/page.js` | server | [01] Absent list + admin edit. |
+| `/fees/admin`, `/fees/admin/pay`, `/fees/admin/today` | `app/fees/admin/...` | server (+ kiosk client) | [04] Dashboard, kiosk, collections. |
+| `/fees/admin/due/[category]`, `.../[classId]` | `app/fees/admin/due/...` | server | [04] Due drill-downs. |
+| `/fees/admin/receipt/[receiptNumber]` | `app/fees/admin/receipt/...` | server | [04] Printable receipt (admin). |
+| `/fees/parent`, `/fees/parent/receipt/[receiptNumber]` | `app/fees/parent/...` | server | [04] Child dues + receipts. |
+| `/complaints/parent` | `app/complaints/parent/page.js` | server + client form | [03] File + track complaints. |
+| `/complaints/admin` | `app/complaints/admin/page.js` | server shell + client inbox | [03] The ticket queue. |
+| `/admin/broadcast`, `/teacher/broadcast` | `app/<role>/broadcast/page.js` | server | [09] Notification composer + Sent outbox (kept role-first). |
+
+**URL generations:** feature pages are FEATURE-FIRST (`app/<feature>/<role>/`)
+since 2026-08-14; the role home pages and 09's broadcast pages are the two
+role-first exceptions. proxy.js gates both.
 
 ### API routes that exist
 

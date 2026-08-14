@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // components/fees/PayKiosk.js
 // The office's cash counter: search a parent by phone -> pick a child -> pick
@@ -368,7 +368,7 @@ export default function PayKiosk() {
 					</p>
 					<div className="mt-5 flex flex-wrap gap-3">
 						<a
-							href={`/admin/fees/receipt/${receipt.receiptNumber}`}
+							href={`/fees/admin/receipt/${receipt.receiptNumber}`}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="cta"

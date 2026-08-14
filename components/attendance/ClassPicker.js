@@ -1,4 +1,4 @@
-// components/attendance/ClassPicker.js
+﻿// components/attendance/ClassPicker.js
 // The grid of class cards a teacher picks from before marking attendance.
 //
 // NOT a client component on purpose: it is a grid of links - no state, no
@@ -15,7 +15,7 @@ import Link from "next/link";
 /**
  * @param {object} props
  * @param {Array<{id:number, classNumber:number, section:string}>} props.classes
- * @param {string} props.basePath  e.g. "/teacher/attendance" - "?classId=" is appended
+ * @param {string} props.basePath  e.g. "/attendance/teacher" - "?classId=" is appended
  */
 export default function ClassPicker({ classes, basePath }) {
 	if (!classes || classes.length === 0) {

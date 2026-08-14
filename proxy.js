@@ -45,11 +45,25 @@ const PUBLIC_APIS = new Set([
 
 // Which roles may enter which URL prefix. Later features build these pages;
 // the rules are declared here now so nobody has to remember to add them.
+//
+// TWO GENERATIONS OF URL SHAPE LIVE HERE, both intentional:
+//   - ROLE-FIRST:  /admin, /teacher, /parent, /bus - the role home pages and
+//     feature 09's broadcast screens (kept for compatibility with 09).
+//   - FEATURE-FIRST: /attendance/<role>, /fees/<role>, /complaints/<role> -
+//     features 01, 03, 04 follow the feature-first layout (matching the
+//     leaves/marks reference architecture).
 const ROLE_PREFIXES = [
   { prefix: "/admin", roles: ["admin"] },
   { prefix: "/teacher", roles: ["teacher"] },
   { prefix: "/parent", roles: ["parent"] },
   { prefix: "/bus", roles: ["bus"] },
+  { prefix: "/attendance/admin", roles: ["admin"] },
+  { prefix: "/attendance/teacher", roles: ["teacher"] },
+  { prefix: "/attendance/parent", roles: ["parent"] },
+  { prefix: "/fees/admin", roles: ["admin"] },
+  { prefix: "/fees/parent", roles: ["parent"] },
+  { prefix: "/complaints/admin", roles: ["admin"] },
+  { prefix: "/complaints/parent", roles: ["parent"] },
 ];
 
 function jsonUnauthorized(message, status) {
