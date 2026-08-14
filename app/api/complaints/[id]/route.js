@@ -153,7 +153,7 @@ export async function PATCH(request, { params }) {
 					priority: "important",
 					kind: "notice",
 					source: "complaints",
-					linkUrl: "/parent/complaints",
+					linkUrl: "/complaints/parent",
 					createdBy: user.profileId,
 					recipientProfileIds: [result.parentId],
 				});

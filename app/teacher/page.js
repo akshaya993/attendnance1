@@ -1,4 +1,4 @@
-// The teacher's home screen. Deliberately EMPTY for now.
+﻿// The teacher's home screen. Deliberately EMPTY for now.
 //
 // DO NOT CREATE ANOTHER TEACHER HOME PAGE. This is it.
 //
@@ -54,7 +54,7 @@ export default async function TeacherHomePage() {
           a student Absent.
         </p>
         <div className="mt-4">
-          <Link href="/teacher/attendance" className="cta">
+          <Link href="/attendance/teacher" className="cta">
             Mark attendance
           </Link>
         </div>

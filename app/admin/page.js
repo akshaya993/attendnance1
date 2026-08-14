@@ -1,4 +1,4 @@
-// The administrator's home screen. Deliberately EMPTY for now.
+﻿// The administrator's home screen. Deliberately EMPTY for now.
 //
 // DO NOT CREATE ANOTHER ADMIN HOME PAGE. This is it. Every feature that needs
 // admin UI adds its section to THIS file, or links out to its own sub-route
@@ -56,7 +56,7 @@ export default async function AdminHomePage() {
           Today&apos;s school-wide attendance, class by class, with corrections.
         </p>
         <div className="mt-4">
-          <Link href="/admin/attendance" className="cta">
+          <Link href="/attendance/admin" className="cta">
             Today&apos;s attendance
           </Link>
         </div>
@@ -69,7 +69,7 @@ export default async function AdminHomePage() {
           Collect payments at the counter, chase dues, print receipts.
         </p>
         <div className="mt-4">
-          <Link href="/admin/fees" className="cta">
+          <Link href="/fees/admin" className="cta">
             Open fee desk
           </Link>
         </div>
@@ -82,7 +82,7 @@ export default async function AdminHomePage() {
           The parent complaint inbox - read, reply, resolve.
         </p>
         <div className="mt-4">
-          <Link href="/admin/complaints" className="cta">
+          <Link href="/complaints/admin" className="cta">
             Open inbox
           </Link>
         </div>

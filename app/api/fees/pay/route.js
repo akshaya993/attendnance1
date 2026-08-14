@@ -111,7 +111,7 @@ export async function POST(request) {
 					priority: "important",
 					kind: "notice",
 					source: "fees",
-					linkUrl: "/parent/fees",
+					linkUrl: "/fees/parent",
 					createdBy: user.profileId,
 					recipientProfileIds: [recipient.parentProfileId],
 				});

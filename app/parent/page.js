@@ -1,4 +1,4 @@
-// The parent's home screen. Deliberately EMPTY for now.
+﻿// The parent's home screen. Deliberately EMPTY for now.
 //
 // DO NOT CREATE ANOTHER PARENT HOME PAGE. This is it.
 //
@@ -56,7 +56,7 @@ export default async function ParentHomePage() {
           Your child&apos;s attendance percentage and day-by-day history.
         </p>
         <div className="mt-4">
-          <Link href="/parent/attendance" className="cta">
+          <Link href="/attendance/parent" className="cta">
             View attendance
           </Link>
         </div>
@@ -69,7 +69,7 @@ export default async function ParentHomePage() {
           Outstanding balance, category-wise dues, and payment receipts.
         </p>
         <div className="mt-4">
-          <Link href="/parent/fees" className="cta">
+          <Link href="/fees/parent" className="cta">
             View fees
           </Link>
         </div>
@@ -82,7 +82,7 @@ export default async function ParentHomePage() {
           Raise a concern with the school office and track its answer.
         </p>
         <div className="mt-4">
-          <Link href="/parent/complaints" className="cta">
+          <Link href="/complaints/parent" className="cta">
             Complaints
           </Link>
         </div>

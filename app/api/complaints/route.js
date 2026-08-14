@@ -117,7 +117,7 @@ export async function POST(request) {
 					priority: "important",
 					kind: "notice",
 					source: "complaints",
-					linkUrl: "/admin/complaints",
+					linkUrl: "/complaints/admin",
 					createdBy: user.profileId,
 					recipientProfileIds: adminIds,
 				});

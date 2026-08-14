@@ -1,15 +1,15 @@
-// app/api/fees/receipt/[receiptNumber]/route.js
+﻿// app/api/fees/receipt/[receiptNumber]/route.js
 // GET /api/fees/receipt/101015  ->  a real PDF file download.
 //
 // ADDED AS AN ADDITION, not a replacement: the printable receipt PAGES
-// (/admin/fees/receipt/..., /parent/fees/receipt/...) stay exactly as they
+// (/fees/admin/receipt/..., /fees/parent/receipt/...) stay exactly as they
 // are; this route is the "Download PDF" button's target. Access rules are
 // copied from those pages on purpose: admin = same branch, parent = own
 // child only. Another family's receipt number answers 404, not a hint.
 //
 // FONT GOTCHA (documented in the feature 04 docs): pdfkit's built-in
 // Helvetica cannot draw the rupee symbol. PDFs therefore write amounts as
-// "Rs 25,500.00" while the screens keep showing "₹25,500.00". If a proper
+// "Rs 25,500.00" while the screens keep showing "â‚¹25,500.00". If a proper
 // rupee glyph is ever required in the PDF, a TTF font containing it must be
 // embedded - a deliberate, separate change.
 
