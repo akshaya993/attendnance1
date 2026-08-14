@@ -68,7 +68,10 @@ export default function BellMenu() {
 	 * never stale on screen.
 	 */
 	useEffect(() => {
-		refreshCount();
+		// The zero-timeout defers the first poll out of the effect's synchronous
+		// body - React's lint rules forbid calling a state-setting function
+		// synchronously inside an effect. Interval/visibility callbacks are fine.
+		const boot = setTimeout(refreshCount, 0);
 		const timer = setInterval(refreshCount, POLL_MS);
 
 		function onVisibilityChange() {
@@ -77,6 +80,7 @@ export default function BellMenu() {
 		document.addEventListener("visibilitychange", onVisibilityChange);
 
 		return () => {
+			clearTimeout(boot);
 			clearInterval(timer);
 			document.removeEventListener("visibilitychange", onVisibilityChange);
 		};

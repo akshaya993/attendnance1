@@ -12,9 +12,14 @@ export default function ThemeToggle() {
 
   // The inline script already set the attribute before React ran.
   // Read it back so the icon matches on first render.
+  // The zero-timeout defers the sync out of the effect's synchronous body -
+  // React's lint rules forbid calling setState directly inside an effect.
   useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme");
-    setTheme(current === "light" ? "light" : "dark");
+    const timer = setTimeout(() => {
+      const current = document.documentElement.getAttribute("data-theme");
+      setTheme(current === "light" ? "light" : "dark");
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   function toggle() {

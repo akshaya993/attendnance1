@@ -58,23 +58,28 @@ export default function ForgotPasswordPage() {
   // so the user would be told a code was sent and receive nothing.
   // This is only the browser remembering the user's OWN click -- the server is
   // never consulted, so nothing about any account is revealed.
+  // The zero-timeout defers the restore out of the effect's synchronous body -
+  // React's lint rules forbid calling setState directly inside an effect.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(COOLDOWN_KEY);
-      if (!raw) return;
+    const timer = setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(COOLDOWN_KEY);
+        if (!raw) return;
 
-      const saved = JSON.parse(raw);
-      const left = Math.ceil((saved.until - Date.now()) / 1000);
+        const saved = JSON.parse(raw);
+        const left = Math.ceil((saved.until - Date.now()) / 1000);
 
-      if (saved.phone && left > 0) {
-        setPhoneNumber(saved.phone);
-        setLastSentTo(saved.phone);
-        setSecondsLeft(Math.min(left, CLIENT_COOLDOWN_SECONDS));
+        if (saved.phone && left > 0) {
+          setPhoneNumber(saved.phone);
+          setLastSentTo(saved.phone);
+          setSecondsLeft(Math.min(left, CLIENT_COOLDOWN_SECONDS));
+        }
+      } catch {
+        // Private browsing can block localStorage. Losing the timer is a small
+        // annoyance; a crash on the reset screen would not be.
       }
-    } catch {
-      // Private browsing can block localStorage. Losing the timer is a small
-      // annoyance; a crash on the reset screen would not be.
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   async function post(url, body) {

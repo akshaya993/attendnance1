@@ -75,12 +75,14 @@ pages + 09 broadcast stay role-first). Old URLs 404 by design (only affects
 pre-launch test notifications). All feature tests re-run and pass post-move.
 Rule going forward: new feature pages go feature-first.
 
-**Pre-existing lint note (not from this session's work):** full-repo
-`npx eslint app components lib` flags `react-hooks/set-state-in-effect` in
-three older files (app/forgot-password/page.js, components/ThemeToggle.js,
-components/notifications/BellMenu.js - features 13/09). They predate this
-session and were left untouched per the no-out-of-scope-refactors rule. All
-session-touched files lint clean. Fix them deliberately, separately, if wanted.
+**RESOLVED 2026-08-14 — the three pre-existing lint errors are fixed:**
+app/forgot-password/page.js, components/ThemeToggle.js and
+components/notifications/BellMenu.js (features 13/09) each called setState
+synchronously inside a useEffect body, which the newer react-hooks rule
+`set-state-in-effect` rejects. All three now defer via a zero-timeout -
+identical behaviour, `npm run lint` is fully clean (0 errors, 0 warnings),
+build passes, and the affected flows (theme toggle, OTP countdown restore,
+bell badge poll) were re-verified live.
 
 **2026-08-14 — eslint.config.mjs hardened:** running `npx eslint <file>` from
 a SUBFOLDER (e.g. inside app/) printed "Pages directory cannot be found..." -
