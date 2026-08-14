@@ -82,6 +82,14 @@ components/notifications/BellMenu.js - features 13/09). They predate this
 session and were left untouched per the no-out-of-scope-refactors rule. All
 session-touched files lint clean. Fix them deliberately, separately, if wanted.
 
+**2026-08-14 — eslint.config.mjs hardened:** running `npx eslint <file>` from
+a SUBFOLDER (e.g. inside app/) printed "Pages directory cannot be found..." -
+a false alarm (the Next.js rule searches relative to the terminal's folder).
+The rule `@next/next/no-html-link-for-pages` is now pinned to this project's
+absolute app/ path (computed from the config file's own location), so linting
+behaves identically from any folder and any clone. Verified: exit 0, silent,
+from both root and app/.
+
 **RESOLVED:** the `must_change_password` / session_epoch open risk was fixed by
 feature 09 - `lib/guard.js` now owns `requireActiveSession()` /
 `requireActiveApiSession()` and every page and API route (including all of
